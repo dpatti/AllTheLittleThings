@@ -9,23 +9,19 @@ local options = {
 
 function mod:OnInitialize()
 	db = core.db.profile[self:GetName()] or {}
-	self:RegisterEvent("ADDON_LOADED")
 end
 
-function mod:ADDON_LOADED(_, name)
-	if name == "RaidBuffStatus" then
-		if RaidBuffStatus then
-			self:SecureHook(RaidBuffStatus, "SetupFrames", "SetupRBS")
-		end	
-		self:UnregisterEvent("ADDON_LOADED")
-	end
+function mod:OnEnable()
+	if RaidBuffStatus then
+		self:SecureHook(RaidBuffStatus, "SetupFrames", "SetupRBS")
+	end	
 end
 
 function mod:RunMacro(name)
 	local macros = core:GetModule("Macros")
 	if not macros or not macros[name] then return end
 	
-	macros[name]()
+	macros[name](macros)
 end
 
 local didSetup = false
