@@ -61,14 +61,20 @@ function core:RegisterOptions(modOptions, modDefaults)
 end
 
 function core:RegisterSlashCommand(callback, ...)
-	local long = ""
+	local keyword
 	for i=1,select('#', ...) do
 		local slash = select(i, ...)
+		if slashCallback[slash] then
+			error(("Slash command paramter already registered: '%s'"):format(slash))
+		end
 		slashCallback[slash] = self[callback]
-		long = string.len(slash)>string.len(long) and slash or long
+
+		if not keyword or slash:len() < keyword:len() then
+			keyword = slash
+		end
 	end
 
-	slashList[long] = ("|cff33ff99%s|r:%s()"):format(self:GetName(), callback)
+	slashList[("|cff33ff99%s|r:|cffcc7833%s()|r"):format(self:GetName(), callback)] = keyword
 end
 
 function core:MainSlashHandle(msg)

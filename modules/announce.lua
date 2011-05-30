@@ -58,7 +58,6 @@ local armorGlyphs = {
 function mod:OnInitialize()
 	db = core.db.profile[self:GetName()] or {}
 	self:RegisterOptions(options, defaults)
-	self:RegisterSlashCommand("method", "slsh1", "slash2")
 end
 
 function mod:OnEnable()
