@@ -10,22 +10,6 @@ local options = {
 	name = "All The Little Things",
 	type = 'group',
 	args = {
-		alwaysDump = {
-			order = 1,
-			name = "Always Dump",
-			desc = "Always dump to raid chat regardless of promotion",
-			type = 'toggle',
-			get = function(info) return core.db.profile.alwaysDump end,
-			set = function(info, v) core.db.profile.alwaysDump = v end,
-		},
-		interrupt = {
-			order = 4,
-			name = "Interrupt printing",
-			desc = "Toggles printing what you interrupted in party chat",
-			type = "toggle",
-			get = function(info) return core.db.profile.interrupt end,
-			set = function(info, v) core.db.profile.interrupt = v end,
-		},
 		rollTally = {
 			order = 30,
 			name = "Roll Tally",
@@ -66,14 +50,6 @@ local options = {
 			get = function(info) return core.db.profile.markMsgFilter end,
 			set = function(info, v) core.db.profile.markMsgFilter = v core:OnEnable() end,
 		},
-		spellWatch = {
-			order = 80,
-			name = "Print important spells",
-			desc = "Prints MD, ToTT, and taunts to ncafail.",
-			type = 'toggle',
-			get = function(info) return core.db.profile.spellWatch end,
-			set = function(info, v) core.db.profile.spellWatch = v end,
-		},
 		macroSwap = {
 			order = 90,
 			name = "Flame Caps for Lich King",
@@ -92,33 +68,15 @@ local defaults = {
 		},
 		alwaysDump = true,
 		isGay = false,
-		interrupt = false,
 		nixAFK = true,
-		autoWG = false,
-		eotsFlag = true,
 		consolidateThresh = 0,
 		officerPhone = true,
 		markMsgFilter = true,
-		spellWatch = true,
 		macroSwap = true,
 		halloween = 1,
 		guildXPMarks = { },
 	}
 }
-local spellWatch = {
-	["Taunt"] = true,
-	["Growl"] = true,
-	["Hand of Reckoning"] = true,
-	["Death Grip"] = true,
-	["Dark Command"] = true,
-}
-local aoeSpellWatch = {
-	["Misdirection"] = true,
-	["Tricks of the Trade"] = true,
-	["Righteous Defense"] = true,
-	["Challenging Shout"] = true,
-	["Challenging Roar"] = true,
-};
 local potList = {
 	["a"] = 58146, -- Golemblood
 	["b"] = 58145, -- Tol'vir
@@ -127,16 +85,11 @@ local potList = {
 	["e"] = 57194, -- Concentration
 	["f"] = 57192, -- Mythical
 }
-local armorGlyphs = {
-	[30482] = 56382,	 -- Molten Armor
-	[6117]	= 56383,	 -- Mage Armor
-}
 
 core.guildList = {}
 core.rollTally = {}
 core.rollTimer = false
 core.guildHook = false
-core.interruptCast = false
 core.consolidateHook = false
 core.achieveHook = false
 core.hallowBuff = nil
@@ -144,10 +97,6 @@ core.mailQueue = {} -- used in /atlt pots
 
 function core:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
-	--[[self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
-	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")]]
-	
 	self:RegisterChatCommand("atlt", "SlashProcess")
 	
 	-- options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
@@ -197,7 +146,6 @@ function core:OnEnable()
 	self:RegisterEvent("ZONE_CHANGED", "ZoneChange");
 	self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "ZoneChange");
 	self:RegisterEvent("PLAYER_DIFFICULTY_CHANGED", "ZoneChange");
-	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 	self:RegisterEvent("CHAT_MSG_LOOT")
 	self:RegisterEvent("UNIT_AURA")
 	self:RegisterEvent('GUILDBANKFRAME_OPENED')
@@ -570,84 +518,6 @@ function core:CHAT_MSG_SYSTEM(_, message, source)
 	end
 end
 
-
--- g_allDebuffs = {}
-function core:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
---[[	
-	if self.db.profile.interrupt and GetNumPartyMembers()>0 then
-		if event == "SPELL_INTERRUPT" and srcName == UnitName("player") then
-			SendChatMessage("Interrupted " .. dstName .. "'s " .. extraSpellName, "party")
-			self.interruptCasted = false
-		end
-		if (event == "SPELL_MISSED" or event == "SPELL_HIT") and srcName == UnitName("player") and spellName == "Counterspell" then
-			SendChatMessage("Counterspell missed", "party")
-			self.interruptCasted = false
-		end
-		if event == "SPELL_CAST_SUCCESS" and srcName == UnitName("player") and spellName == "Counterspell" then
-			self.interruptCasted = true
-			self:ScheduleTimer(function() if core.interruptCasted == true then 
-									SendChatMessage("Counterspell failed", "party")
-									self.interruptCasted = false
-								end end, 0.3)
-		end					
-	end
-]]	
-	-- if (spellName == "Animal Blood" and event == "SPELL_AURA_REMOVED") then
-		-- if not g_allDebuffs[dstName] then
-			-- g_allDebuffs[dstName] = 0
-		-- end
-		
-		-- g_allDebuffs[dstName] = g_allDebuffs[dstName] + 1
-	-- end
-
-	if (self.db.profile.spellWatch and (UnitInRaid(srcName) or UnitInParty(srcName)) and (not UnitInBattleground("player")) and (GetRealZoneText() ~= "Wintergrasp")) then
-		-- temp gaffer watch!
-		--if (UnitInRaid("Gaffer") or UnitInRaid("Gtt")) then
-		--	return;
-		--end
-		
-		local act = false;
-		if ( (event == "SPELL_AURA_APPLIED" and spellWatch[spellName]) or 
-			 (event == "SPELL_CAST_SUCCESS" and aoeSpellWatch[spellName]) ) then
-			act = "casted";
-		elseif (event == "SPELL_MISSED" and spellWatch[spellName]) then
-			act = "missed";
-		end
-		if (act ~= false) then
-			local target = (dstName and " on %s") or "";
-			SendChatMessage(format("%s %s %s"..target, srcName, act, spellName, dstName), "channel", nil, GetChannelName("ncafail"));
-		end
-	end
-	
-	if (event == "SPELL_AURA_REMOVED" and dstGUID == UnitGUID("player") and spellName == "Cauterize") then
-		self:ScheduleTimer(function()
-			if not UnitIsDead("player") then
-				for i=1,GetNumGuildMembers() do
-					local name, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
-					if name == "Chira" and online then
-						SendChatMessage(">>> Cauterize just saved me! <<<", "whisper", nil, name)
-					end
-				end
-			end
-		end, 1)
-	end
-	
-	if (event == "SPELL_AURA_APPLIED" and dstGUID == UnitGUID("player")) then
-		if armorGlyphs[spellid] then
-			-- print(spellid, armorGlyphs[spellid])
-			-- check if we have a different glyph
-			for i=1, NUM_GLYPH_SLOTS do
-				local glyphSpell = select(4, GetGlyphSocketInfo(i))
-				-- print(glyphSpell)
-				if glyphSpell == armorGlyphs[spellid] then
-					return
-				end
-			end
-			print(format("Warning: %s is not glyphed", spellName))
-		end
-	end
-
-end
 
 function core:FlaskCheck()
 	local now = GetTime()
