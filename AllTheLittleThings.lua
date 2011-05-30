@@ -1,4 +1,5 @@
 local core = LibStub("AceAddon-3.0"):NewAddon("AllTheLittleThings", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0", "AceTimer-3.0")
+local db
 atlt = core
 
 local defaults = {
@@ -25,7 +26,8 @@ core:SetDefaultModulePrototype(prototype)
 core:SetDefaultModuleLibraries("AceConsole-3.0")
 
 function core:OnInitialize()
-	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
+	db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
+	self.db = db
 	self:RegisterChatCommand("atlt", "MainSlashHandle")
 	
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("AllTheLittleThings", options)
@@ -40,6 +42,7 @@ function core:OnDisable()
 end
 
 -- two registry functions called with self=mod
+local defaultsTimer
 function core:RegisterOptions(modOptions, modDefaults)
 	local name = self:GetName()
 	defaults.profile[name] = modDefaults
@@ -48,6 +51,13 @@ function core:RegisterOptions(modOptions, modDefaults)
 		type = 'group',
 		args = modOptions
 	}
+
+	if defaultsTimer then
+		core:CancelTimer(defaultsTimer)
+	end
+	defaultsTimer = core:ScheduleTimer(function()
+		db:RegisterDefaults(defaults)
+	end, 0.01)
 end
 
 function core:RegisterSlashCommand(callback, ...)
@@ -58,17 +68,21 @@ function core:RegisterSlashCommand(callback, ...)
 		long = string.len(slash)>string.len(long) and slash or long
 	end
 
-	slashList[long] = ("%s:%s()"):format(self:GetName(), callback)
+	slashList[long] = ("|cff33ff99%s|r:%s()"):format(self:GetName(), callback)
 end
 
 function core:MainSlashHandle(msg)
-	local _, e, command = string.find("(%S+)", msg)
-	msg = string.sub(msg, e+1)
+	local _, e, command = msg:find("(%S+)")
 
 	if command and slashCallback[command] then
+		msg = msg:sub(e+1)
 		slashCallback[command](msg)
 	else
 		-- print all commands
+		print("|cff33ff99AllTheLittleThings|r available commands:")
+		for cmd,call in pairs(slashList) do
+			print(("    %s - %s"):format(cmd, call))
+		end
 	end
 end
 
