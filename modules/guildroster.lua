@@ -1,5 +1,5 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Guild Roster", "AceEvent-3.0", "AceHook-3.0")
+local mod = core:NewModule("GuildRoster", "AceEvent-3.0", "AceHook-3.0")
 local db
 
 local defaults = {
@@ -281,7 +281,7 @@ function mod:RosterUpdatePostHook()
 						GuildRosterButton_SetStringText(button.barLabel, "#"..achievementRank, online);
 					end
 					button:Show();
-					if ( mod(index, 2) == 0 ) then
+					if ( index % 2 == 0 ) then
 						button.stripe:SetTexCoord(0.36230469, 0.38183594, 0.95898438, 0.99804688);
 					else
 						button.stripe:SetTexCoord(0.51660156, 0.53613281, 0.88281250, 0.92187500);

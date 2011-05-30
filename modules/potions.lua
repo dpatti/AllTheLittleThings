@@ -1,5 +1,5 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Potion Mail", "AceEvent-3.0")
+local mod = core:NewModule("PotionMail", "AceEvent-3.0")
 local db
 
 local defaults = {

@@ -1,5 +1,5 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Chat Filter")
+local mod = core:NewModule("ChatFilter")
 local db
 
 local defaults = {
