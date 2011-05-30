@@ -22,7 +22,7 @@ local options = {
 	cauterize = {
 		name = "Cauterize Save",
 		desc = "Tells target when my Cauterize saves me",
-		type = 'text',
+		type = 'input',
 	},
 	armorGlyph = {
 		name = "Alert for unglyphed armor",

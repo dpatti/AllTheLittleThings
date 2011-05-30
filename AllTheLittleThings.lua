@@ -25,7 +25,7 @@ core:SetDefaultModulePrototype(prototype)
 core:SetDefaultModuleLibraries("AceConsole-3.0")
 
 function core:OnInitialize()
-	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default") or {}
+	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
 	self:RegisterChatCommand("atlt", "MainSlashHandle")
 	
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("AllTheLittleThings", options)
