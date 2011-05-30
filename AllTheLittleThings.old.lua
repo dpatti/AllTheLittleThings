@@ -26,14 +26,6 @@ local options = {
 			get = function(info) return core.db.profile.interrupt end,
 			set = function(info, v) core.db.profile.interrupt = v end,
 		},
-		autoML = {
-			order = 20,
-			name = "Auto ML",
-			desc = "Sets loot type to ML when a raid has more than 20 players in it.",
-			type = "toggle",
-			get = function(info) return core.db.profile.autoML end,
-			set = function(info, v) core.db.profile.autoML = v core:OnEnable() end,
-		},
 		easyInvites = {
 			order = 25,
 			name = "Easy Raid Invites",
@@ -157,10 +149,8 @@ core.guildHook = false
 core.guildView = nil
 core.interruptCast = false
 core.consolidateHook = false
-core.mlOrder = {"Chira", "Devotchka", "Yawning", "Brinkley", "Toney", "Dcon"}
 core.achieveHook = false
 core.hallowBuff = nil
-core.countDown = {"Pulling in 5", "4", "3", "2", "1", "Go"} -- used in /atlt cd
 core.mailQueue = {} -- used in /atlt pots
 core.rosterRaidersOnly = false
 -- core.rosterAlteredCache = {} -- mapping of ids when checked
@@ -193,7 +183,6 @@ function core:OnEnable()
 	SetModifiedClick("TRADESEARCHADD", nil)
 	
 	if self.db.profile.autoML or self.db.profile.easyInvites or self.db.profile.autoWG then
-		self:RegisterEvent("RAID_ROSTER_UPDATE")
 		self:RAID_ROSTER_UPDATE()
 	end
 	-- if self.db.profile.easyInvites then
@@ -582,18 +571,6 @@ function core:RAID_ROSTER_UPDATE()
 	if (_G["GuildRoster_Update"]) then
 		self:GuildRoster_Update()
 	end
-	if self.db.profile.autoML and IsRaidLeader() and GetNumRaidMembers()>20 and GetLootMethod() ~= "master" and GetRealZoneText() ~= "Wintergrasp" then
-		SetLootMethod("master", "player")
-		self:ScheduleTimer(function() SetLootThreshold(3) end, 2)
-	end
-	if nil and self.db.profile.easyInvites and GuildFrame:IsShown() then
-		GuildStatus_Update()
-	end
-	if self.db.profile.autoWG then
-		if UnitName("Unhidenenemy") and GetRealZoneText() == "Wintergrasp" and IsRaidOfficer() then
-			UninviteUnit("Unhidenenemy")
-		end
-	end
 end
 
 function core:CHAT_MSG_RAID_WARNING(_, message)
@@ -769,32 +746,6 @@ function core:FlaskCheck()
 					-- SendChatMessage(format("Flask ending in %d:%02d", UnitName(r), floor(time/60), time%60), "whipser", nil, player)
 				end
 			end
-		end
-	end
-end
-
-function core:Countdown()
-	for i=5,0,-1 do
-		self:ScheduleTimer(function()
-			local msg = self.countDown[6-i];
-			--[[if (msg == "Go") then
-				local transitive = TRANSITIVES[math.random(#TRANSITIVES)];
-				msg = format("%s babies", transitive)
-			end]]
-			SendChatMessage(msg, "RAID_WARNING");
-		end, 5-i);
-	end
-end
-
-function core:MasterLoot()
-	for k,v in ipairs(self.mlOrder) do
-		for i=1, 40 do
-			if GetMasterLootCandidate(i) == v then
-				for j=1, GetNumLootItems() do 
-					GiveMasterLoot(j, i)
-				end 
-				return
-			end 
 		end
 	end
 end
