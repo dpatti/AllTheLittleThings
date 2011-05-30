@@ -154,6 +154,9 @@ function mod:ActiveTally(mode)
 end
 
 -- Roll Tally ------------------------------------------------------------------
+local rollTally = {}
+local rollTimer = false
+
 function core:CHAT_MSG_RAID_WARNING(_, message)
 	if self.db.profile.rollTally and string.find(message:lower(), "roll") then
 		if self.rollTimer then
@@ -161,10 +164,65 @@ function core:CHAT_MSG_RAID_WARNING(_, message)
 			self:CancelTimer(self.rollTimer)
 			self:RollFinish()
 		end
-		self.rollTally = {}
+		rollTally = {}
 		self.rollTimer = self:ScheduleTimer("RollFinish", 10)
 	end
 end
+
+function core:CHAT_MSG_SYSTEM(_, message, source)
+	if self.db.profile.rollTally and self.rollTimer then
+		local name, roll, min, max = string.match(message, "(%S+) rolls (%d+) %((%d+)%-(%d+)%)")
+		if name and roll and min and max then
+			if min ~= "1" or max ~= "100" then
+				self:Print(string.format("%s is rolling out of bounds (%d-%d).", name, min, max))
+				return
+			end
+			if not rollTally then
+				rollTally = {}
+			end
+			if rollTally[name] then
+				self:Print(string.format("%s is rolling again (first: %d, this: %d).", name, rollTally[name], roll))
+				return
+			end
+			rollTally[name] = roll
+		end
+	end
+end
+
+function core:RollFinish()
+	local winner
+	local ties = {}
+	for i,v in pairs(rollTally) do
+		if (not winner) or (tonumber(rollTally[winner])<tonumber(v)) then
+			winner = i
+			ties = {}
+		elseif rollTally[winner] == v then
+			table.insert(ties, i)
+		end
+	end
+	if not winner then
+		self:Print("No rolls detected.")
+	else
+		if next(ties) then
+			local roll = rollTally[winner]
+			for i,v in ipairs(ties) do
+				winner = v .. ", " .. winner
+			end
+			self:Print(string.format("%d-way tie between %s (rolled %d). Rerolling...", #ties+1, winner, roll))
+			rollTally = {}
+			self:ScheduleTimer("RollFinish", 4)
+		else
+			self:Print(string.format("%s won the roll with a %d.", winner, rollTally[winner]))
+		end
+	end
+	self.rollTimer = false
+end
+
+
+function core:NixAFK(_, _, ...)
+	return (not not self.db.profile.nixAFK), ...;
+end
+
 
 -- Officer Phone ---------------------------------------------------------------
 function core:CHAT_MSG_OFFICER(_, msg)
@@ -201,4 +259,26 @@ function core:CheckPhone(index)
 		return name, nil;
 	end
 	return nil, nil;
+end
+
+-- Mark Star on Target ---------------------------------------------------------
+function core:TargetUnit(name)
+	if name and GetNumPartyMembers() == 0 and GetNumRaidMembers() == 0 then
+		self:RegisterEvent("UNIT_TARGET", function(_, unit)
+			if unit == "player" then
+				if UnitName("target") and UnitName("target"):lower():find(name:lower()) then
+					SetRaidTarget("target", 1)
+				end
+				self:UnregisterEvent("UNIT_TARGET")
+			end
+		end)
+	end
+end
+
+-- Achieve Load ----------------------------------------------------------------
+function core:AchievementFrame_LoadUI(...)
+	local args = {self.hooks["AchievementFrame_LoadUI"](...)}
+	AchievementFrame_SetFilter(3)
+	self:Unhook("AchievementFrame_LoadUI")
+	return unpack(args);
 end
