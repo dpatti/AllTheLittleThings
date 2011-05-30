@@ -26,14 +26,6 @@ local options = {
 			get = function(info) return core.db.profile.interrupt end,
 			set = function(info, v) core.db.profile.interrupt = v end,
 		},
-		easyInvites = {
-			order = 25,
-			name = "Easy Raid Invites",
-			desc = "Colors names and allows you to alt+click to invite.",
-			type = "toggle",
-			get = function(info) return core.db.profile.easyInvites end,
-			set = function(info, v) core.db.profile.easyInvites = v core:OnEnable() end,
-		},
 		rollTally = {
 			order = 30,
 			name = "Roll Tally",
@@ -101,8 +93,6 @@ local defaults = {
 		alwaysDump = true,
 		isGay = false,
 		interrupt = false,
-		autoML = false,
-		easyInvites = false,
 		nixAFK = true,
 		autoWG = false,
 		eotsFlag = true,
@@ -146,18 +136,11 @@ core.guildList = {}
 core.rollTally = {}
 core.rollTimer = false
 core.guildHook = false
-core.guildView = nil
 core.interruptCast = false
 core.consolidateHook = false
 core.achieveHook = false
 core.hallowBuff = nil
 core.mailQueue = {} -- used in /atlt pots
-core.rosterRaidersOnly = false
--- core.rosterAlteredCache = {} -- mapping of ids when checked
-core.rosterRaidersCache = {} -- mains who are raiders
-core.rosterRaidersCount = 0
-core.rosterRaidersOnline = 0
--- core.inRosterUpdate = false -- whether to return mapped values
 
 function core:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
@@ -182,39 +165,6 @@ end
 function core:OnEnable()
 	SetModifiedClick("TRADESEARCHADD", nil)
 	
-	if self.db.profile.autoML or self.db.profile.easyInvites or self.db.profile.autoWG then
-		self:RAID_ROSTER_UPDATE()
-	end
-	-- if self.db.profile.easyInvites then
-	self:RegisterEvent("ADDON_LOADED", function(_, name)
-		if name == "Blizzard_GuildUI" then
-			self:SecureHook("GuildRoster_Update")
-			self:SecureHook(GuildRosterContainer, "update", "GuildRoster_Update")
-			local buttons = GuildRosterContainer.buttons
-			for i=1, #buttons do
-				buttons[i].stripe.texture = buttons[i].stripe:GetTexture()
-				self:RawHookScript(buttons[i], "OnClick", "GuildRosterButton_OnClick")
-			end
-			-- self:RawHook("GuildRosterButton_OnClick", true)
-			self:SecureHook("GuildRoster_SetView")
-			self:UnregisterEvent("ADDON_LOADED")
-			
-			-- modify
-			self:ModifyRosterPane()
-			-- need to write my own hook since AceHook doesn't allow more than one?
-			-- self:Hook("GuildRoster_Update", "RosterUpdatePreHook", true)
-			-- local GuildRoster_UpdateHook = GuildRoster_Update
-			-- local function GuildRoster_UpdateReplace()
-				-- self:RosterUpdatePreHook()
-				-- return GuildRoster_UpdateHook()
-				-- self:GuildRoster_UpdateNew()
-				-- self:GuildRoster_Update() -- for the other bit
-			-- end
-			-- GuildRoster_Update = GuildRoster_UpdateReplace
-			-- GuildRosterContainer.update = GuildRoster_UpdateReplace
-		end
-	end)
-	-- end
 	if self.db.profile.rollTally then
 		self:RegisterEvent("CHAT_MSG_RAID_WARNING")
 		self:RegisterEvent("CHAT_MSG_SYSTEM")
@@ -473,34 +423,6 @@ function core:SlashProcess(msg)
 			mains[max] = nil
 		end
 		printInfo("* Denotes capped on at least one character")
-	elseif msg == "rostercheck" or msg == "rc" then
-		-- TODO: make a global alt_ranks and main_ranks thing in case we change it
-		local altRanks = {
-			[2] = true,
-			[4] = true,
-		}
-		local mains = {}
-		local alts = {}
-		for i=1,GetNumGuildMembers() do
-			local name, _, rank, _, _, _, onote = GetGuildRosterInfo(i)
-			if altRanks[rank] then
-				alts[name] = onote
-			else
-				mains[name] = true
-			end
-		end
-		local toPrint = {}
-		for name,main in pairs(alts) do
-			if mains[main] then
-				alts[name] = nil
-			else
-				table.insert(toPrint, name)
-				table.sort(toPrint, function(a,b) return alts[a]<alts[b] end)				
-			end
-		end
-		for _,name in ipairs(toPrint) do
-			self:Print("Mismatched Alt:", name, "belongs to", alts[name], format("|cffffa0a0|Hgremove:%s|h[Guild Remove]|h", name))
-		end
 	elseif msg == "hott" then 
 		self:RaidDump("Checking for Herald Gear...")
 		for i=1,GetNumRaidMembers() do 
@@ -564,12 +486,6 @@ function core:SlashProcess(msg)
 		self:Print("/atlt combatlog - Fixes a broken combat log")
 		self:Print("/atlt hott - Raid wide Herald of the Titans check")
 		self:Print("/atlt ttdi - Raid wide Tribute to Dedicated Insanity check")
-	end
-end
-
-function core:RAID_ROSTER_UPDATE()
-	if (_G["GuildRoster_Update"]) then
-		self:GuildRoster_Update()
 	end
 end
 
@@ -827,44 +743,8 @@ function core:NixAFK(_, _, ...)
 end
 
 
-function core:GuildRoster_Update()
-	self:RosterUpdatePostHook()
-	
-	local view = self.guildView or GuildRosterViewDropdown.selectedValue
-	local buttons = GuildRosterContainer.buttons
-	local offset = HybridScrollFrame_GetOffset(GuildRosterContainer);
-	for i=1, #buttons do
-		local stripe = buttons[i].stripe
-		if stripe.texture then
-			stripe:SetTexture(stripe.texture)
-		end
-		
-		if (UnitInRaid("player") and self.db.profile.easyInvites) then
-			if buttons[i].guildIndex then
-				name = GetGuildRosterInfo(buttons[i].guildIndex)
-				if name and UnitInRaid(name) and (view == "playerStatus" or view == "guildStatus") then
-					buttons[i].stripe:SetTexture(1, 0.5, 0, 0.3)
-				end
-			end
-		end
-	end
-end
 
-function core:GuildRoster_SetView(view)
-	self.guildView = view
-end
 
-function core:GuildRosterButton_OnClick(this, button, ...)
-	if self.db.profile.easyInvites and IsAltKeyDown() then
-		local guildIndex = this.guildIndex
-		local name, _, _, _, _, _, _, _, online = GetGuildRosterInfo(guildIndex)
-		if online then
-			InviteUnit(name)
-		end
-	else
-		self.hooks[this].OnClick(this, button, ...)
-	end
-end
 
 
 
@@ -1186,254 +1066,6 @@ function core:NewRBSButton(label, func, width, anchorFrom, anchorTo, anchorX, an
 	RaidBuffStatus[label.."Button"] = button
 end
 
--- mismatched alts itemlink
-local SetItemRefHook = SetItemRef
-function SetItemRef(id, ...)
-	local target = id:match("gremove:(.+)")
-	if target then
-		GuildUninvite(target)
-	else
-		return SetItemRefHook(id, ...)
-	end
-end
-
-local lastCache = GetTime()
-function core:ModifyRosterPane()
-	-- change existing text
-	local offlineText = GuildRosterShowOfflineButton:GetRegions()
-	if offlineText:GetObjectType() == "FontString" then
-		offlineText:SetText("Offline")
-	
-		-- make a button
-		local frame = CreateFrame("CheckButton", "GuildRosterShowRaidersButton", GuildRosterFrame, "UICheckButtonTemplate")
-		frame:SetSize(20, 20)
-		frame:SetPoint("LEFT", offlineText, "RIGHT", 8, 0)
-		frame:SetScript("OnClick", function(check)
-			self.rosterRaidersOnly = check:GetChecked()
-			HybridScrollFrame_SetOffset(GuildRosterContainer, 0)
-			GuildRoster_Update()
-			-- reset text to force an update ala Blizzard_GuildUI.lua:72
-			local totalMembers, onlineMembers = GetNumGuildMembers()
-			GuildFrameMembersCount:SetText(onlineMembers.." / "..totalMembers)
-		end)
-		local text = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-		text:SetText("Raiders")
-		text:SetPoint("LEFT", frame, "RIGHT", 2, 1)
-	end
-	
-	-- hook the members online text set
-	local memberSetText = GuildFrameMembersCount.SetText
-	GuildFrameMembersCount.SetText = function(self, str, ...)
-		if core.rosterRaidersOnly and core.rosterRaidersOnline > 0 then
-			str = format("%d / %d", core.rosterRaidersOnline, core.rosterRaidersCount)
-		end
-		return memberSetText(self, str, ...)
-	end
-	
-	-- cache all raiders
-	self:CacheRaiders()
-end
-
-function core:CacheRaiders()
-	wipe(self.rosterRaidersCache)
-	self.rosterRaidersCount = 0
-	
-	for i=1,GetNumGuildMembers() do
-		if self:IsRaider(i) then
-			self.rosterRaidersCache[GetGuildRosterInfo(i)] = true
-			self.rosterRaidersCount = self.rosterRaidersCount + 1
-		end
-	end
-end
-
-function core:IsRaider(index)
-	local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(index)
-	-- if a raider+ rank, or below and linked to a raider
-	-- not name tests for out of bounds check
-	if not name or ((rank <= 1) or (rank == 3) or (rank == 5) or ((rank == 4 or rank == 2) and online and self.rosterRaidersCache[note])) then
-		return true
-	end
-	return false
-end
-
-local GUILD_ROSTER_MAX_COLUMNS = 5;
-local GUILD_ROSTER_MAX_STRINGS = 4;
-local GUILD_ROSTER_BAR_MAX = 239;
-local GUILD_ROSTER_BUTTON_OFFSET = 2;
-local GUILD_ROSTER_BUTTON_HEIGHT = 20;
-
-function core:RosterUpdatePostHook()
-	if not self.rosterRaidersOnly then
-		return
-	end
-	if GetTime() - lastCache > 60*5 then
-		self:CacheRaiders()
-	end
-	
-	-- begin modified blizzard code
-	
-	local scrollFrame = GuildRosterContainer;
-	local offset = HybridScrollFrame_GetOffset(scrollFrame);
-	local buttons = scrollFrame.buttons;
-	local numButtons = #buttons;
-	local button, index, class;
-	local totalMembers, onlineMembers = GetNumGuildMembers();
-	local selectedGuildMember = GetGuildRosterSelection();
-	local currentGuildView = self.guildView or GuildRosterViewDropdown.selectedValue
-
-	if ( currentGuildView == "tradeskill" ) then
-		return;
-	end
-
-	local maxWeeklyXP, maxTotalXP = GetGuildRosterLargestContribution();
-	local maxAchievementsPoints = GetGuildRosterLargestAchievementPoints();
-	-- numVisible
-	local visibleMembers = 0;
-	for i=1,onlineMembers do
-		if self:IsRaider(i) then
-			visibleMembers = visibleMembers + 1
-		end
-	end
-	-- copy visibleMembers to local for referencing
-	self.rosterRaidersOnline = visibleMembers
-	
-	if ( GetGuildRosterShowOffline() ) then
-		visibleMembers = self.rosterRaidersCount;
-	end
-	
-	
-	-- self:Print("Start", visibleMembers, self.rosterRaidersCount)
-	local safety = 1000
-	local numRaidersDisp = 0
-	local i = 1
-	local nonMembers = 0
-	while i <= numButtons do
-		safety = safety - 1
-		if safety == 0 then
-			error("SAFTEY BROKEN")
-			return
-		end
-		button = buttons[i];
-		index = i + nonMembers;
-		local name, rank, rankIndex, level, class, zone, note, officernote, online, status, classFileName, achievementPoints, achievementRank, isMobile = GetGuildRosterInfo(index);
-		-- self:Print(name, index, rank, note, online, self:IsRaider(index))
-		if ( name and i <= visibleMembers) then
-			if self:IsRaider(index) then
-				-- self:Print(offset, name)
-				if offset == 0 then
-					i = i + 1
-					button.guildIndex = index;
-					local displayedName = name;
-					if ( isMobile ) then
-						displayedName = ChatFrame_GetMobileEmbeddedTexture(119/255, 137/255, 119/255)..displayedName;
-					end
-					button.online = online;
-					if ( currentGuildView == "playerStatus" ) then
-						GuildRosterButton_SetStringText(button.string1, level, online)
-						button.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFileName]));
-						GuildRosterButton_SetStringText(button.string2, displayedName, online, classFileName)
-						GuildRosterButton_SetStringText(button.string3, isMobile and REMOTE_CHAT or zone, online)
-					elseif ( currentGuildView == "guildStatus" ) then
-						GuildRosterButton_SetStringText(button.string1, displayedName, online, classFileName)
-						GuildRosterButton_SetStringText(button.string2, rank, online)
-						GuildRosterButton_SetStringText(button.string3, note, online)
-						if ( online ) then
-							GuildRosterButton_SetStringText(button.string4, GUILD_ONLINE_LABEL, online);					
-						else
-							GuildRosterButton_SetStringText(button.string4, GuildRoster_GetLastOnline(index), online);
-						end
-					elseif ( currentGuildView == "weeklyxp" ) then
-						local weeklyXP, totalXP, weeklyRank, totalRank = GetGuildRosterContribution(index);
-						GuildRosterButton_SetStringText(button.string1, level, online)
-						button.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFileName]));
-						GuildRosterButton_SetStringText(button.string2, displayedName, online, classFileName)
-						GuildRosterButton_SetStringText(button.string3, weeklyXP, online)
-						if ( weeklyXP == 0 ) then
-							button.barTexture:Hide();
-						else
-							button.barTexture:SetWidth(weeklyXP / maxWeeklyXP * GUILD_ROSTER_BAR_MAX);
-							button.barTexture:Show();
-						end
-						GuildRosterButton_SetStringText(button.barLabel, "#"..weeklyRank, online);
-					elseif ( currentGuildView == "totalxp" ) then
-						local weeklyXP, totalXP, weeklyRank, totalRank = GetGuildRosterContribution(index);
-						GuildRosterButton_SetStringText(button.string1, level, online);
-						button.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFileName]));
-						GuildRosterButton_SetStringText(button.string2, displayedName, online, classFileName);
-						GuildRosterButton_SetStringText(button.string3, totalXP, online);
-						if ( totalXP == 0 ) then
-							button.barTexture:Hide();
-						else
-							button.barTexture:SetWidth(totalXP / maxTotalXP * GUILD_ROSTER_BAR_MAX);
-							button.barTexture:Show();
-						end
-						GuildRosterButton_SetStringText(button.barLabel, "#"..totalRank, online);			
-					elseif ( currentGuildView == "pve" ) then
-						GuildRosterButton_SetStringText(button.string1, level, online);
-						button.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFileName]));
-						GuildRosterButton_SetStringText(button.string2, displayedName, online, classFileName);
-						GuildRosterButton_SetStringText(button.string3, valor, online);
-						GuildRosterButton_SetStringText(button.string4, hero, online);
-					elseif ( currentGuildView == "pvp" ) then
-						local bgRating, arenaRating, arenaTeam = GetGuildRosterPVPRatings(index);
-						GuildRosterButton_SetStringText(button.string1, level, online);
-						button.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFileName]));
-						GuildRosterButton_SetStringText(button.string2, displayedName, online, classFileName);
-						GuildRosterButton_SetStringText(button.string3, bgRating, online);
-						GuildRosterButton_SetStringText(button.string4, string.format(GUILD_ROSTER_ARENA_RATING, arenaRating, arenaTeam, arenaTeam), online);
-					elseif ( currentGuildView == "achievement" ) then
-						GuildRosterButton_SetStringText(button.string1, level, online);
-						button.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[classFileName]));
-						GuildRosterButton_SetStringText(button.string2, displayedName, online, classFileName);
-						if ( achievementPoints >= 0 ) then
-							GuildRosterButton_SetStringText(button.string3, achievementPoints, online);
-							if ( achievementPoints == 0 ) then
-								button.barTexture:Hide();
-							else
-								button.barTexture:SetWidth(achievementPoints / maxAchievementsPoints * GUILD_ROSTER_BAR_MAX);
-								button.barTexture:Show();
-							end
-						else
-							GuildRosterButton_SetStringText(button.string3, NO_ROSTER_ACHIEVEMENT_POINTS, online);
-							button.barTexture:Hide();
-						end
-						GuildRosterButton_SetStringText(button.barLabel, "#"..achievementRank, online);
-					end
-					button:Show();
-					if ( mod(index, 2) == 0 ) then
-						button.stripe:SetTexCoord(0.36230469, 0.38183594, 0.95898438, 0.99804688);
-					else
-						button.stripe:SetTexCoord(0.51660156, 0.53613281, 0.88281250, 0.92187500);
-					end
-					if ( selectedGuildMember == index ) then
-						button:LockHighlight();
-					else
-						button:UnlockHighlight();
-					end
-				else
-					offset = offset - 1
-					nonMembers = nonMembers + 1
-				end
-			else
-				nonMembers = nonMembers + 1
-			end			
-		else
-			-- self:Print("Break", i, visibleMembers, offset + i + nonMembers)
-			break
-		end
-	end
-	-- self:Print("End", i, visibleMembers, offset + i + nonMembers)
-	for i=i, numButtons do
-		buttons[i]:Hide()
-	end
-	local totalHeight = visibleMembers * (GUILD_ROSTER_BUTTON_HEIGHT + GUILD_ROSTER_BUTTON_OFFSET);
-	local displayedHeight = numButtons * (GUILD_ROSTER_BUTTON_HEIGHT + GUILD_ROSTER_BUTTON_OFFSET);
-	-- self:Print("Hybrid", scrollFrame, totalHeight, displayedHeight)
-	local guildUpdate = GuildRosterContainer.update
-	GuildRosterContainer.update = function() end
-	HybridScrollFrame_Update(scrollFrame, totalHeight, displayedHeight);
-	GuildRosterContainer.update = guildUpdate
-end
 
 --[[
 -- hook GetNumGuildMembers() second return result?
