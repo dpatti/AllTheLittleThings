@@ -18,44 +18,47 @@ local options = {
 	},
 }
 local slashCallback = {}
+local slashList = {}
+
+local prototype = {}
+core:SetDefaultModulePrototype(prototype)
+core:SetDefaultModuleLibraries("AceConsole-3.0")
 
 function core:OnInitialize()
-	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
+	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default") or {}
 	self:RegisterChatCommand("atlt", "MainSlashHandle")
 	
-	-- LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("AllTheLittleThings", options)
-	-- local ACD = LibStub("AceConfigDialog-3.0")
-	-- ACD:AddToBlizOptions("AllTheLittleThings", "AllTheLittleThings")
-	
-	self:SetDefaultModulePrototype({
-		RegisterOptions = core.RegisterOptions,
-		RegisterSlashCommand = core.RegisterSlashCommand,
-	})
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("AllTheLittleThings", options)
+	local ACD = LibStub("AceConfigDialog-3.0")
+	ACD:AddToBlizOptions("AllTheLittleThings", "AllTheLittleThings")
 end
 
 function core:OnEnable()
-
 end
 
 function core:OnDisable()
-	
 end
 
 -- two registry functions called with self=mod
-function core:RegisterOptions(options, defaults)
+function core:RegisterOptions(modOptions, modDefaults)
 	local name = self:GetName()
-	defaults.profile[name] = defaults
+	defaults.profile[name] = modDefaults
 	options.args[name] = {
 		name = name,
 		type = 'group',
-		args = options
+		args = modOptions
 	}
 end
 
 function core:RegisterSlashCommand(callback, ...)
+	local long = ""
 	for i=1,select('#', ...) do
-		slashCallback[select('i', ...)] = self[callback]
+		local slash = select(i, ...)
+		slashCallback[slash] = self[callback]
+		long = string.len(slash)>string.len(long) and slash or long
 	end
+
+	slashList[long] = ("%s:%s()"):format(self:GetName(), callback)
 end
 
 function core:MainSlashHandle(msg)
@@ -68,4 +71,8 @@ function core:MainSlashHandle(msg)
 		-- print all commands
 	end
 end
+
+-- fill out our prototype now that our addon's indicies are populated
+prototype.RegisterOptions = core.RegisterOptions
+prototype.RegisterSlashCommand = core.RegisterSlashCommand
 

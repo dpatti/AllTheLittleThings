@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
 local mod = core:NewModule("Raid", "AceEvent-3.0", "AceTimer-3.0")
-local db = core.db.profile[mod:GetName()]
+local db
 
 local defaults = {
 	autoML = true,
@@ -14,7 +14,8 @@ local options = {
 }
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
 end
 
 function mod:OnEnable()

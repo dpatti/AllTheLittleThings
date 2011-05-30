@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Miscellaneous", "AceEvent-3.0", "AceConsole-3.0", "AceHook-3.0", "AceTimer-3.0")
-local db = core.db.profile[mod:GetName()]
+local mod = core:NewModule("Miscellaneous", "AceEvent-3.0", "AceHook-3.0", "AceTimer-3.0")
+local db
 
 local defaults = {
 	rollTally = true,
@@ -38,10 +38,11 @@ local options = {
 }
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
-	core:RegisterSlashCommand("RollTally", "rt", "rolltally")
-	core:RegisterSlashCommand("FindPhones", "phone")
-	core:RegisterSlashCommand("ActiveTally", "at", "activetally")
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
+	self:RegisterSlashCommand("RollTally", "rt", "rolltally")
+	self:RegisterSlashCommand("FindPhones", "phone")
+	self:RegisterSlashCommand("ActiveTally", "at", "activetally")
 
 	-- allow max camera zoom
 	ConsoleExec("cameradistancemaxfactor 5")
@@ -157,20 +158,20 @@ end
 local rollTally = {}
 local rollTimer = false
 
-function core:CHAT_MSG_RAID_WARNING(_, message)
-	if self.db.profile.rollTally and string.find(message:lower(), "roll") then
-		if self.rollTimer then
+function mod:CHAT_MSG_RAID_WARNING(_, message)
+	if db.rollTally and string.find(message:lower(), "roll") then
+		if rollTimer then
 			-- Stop current roll
-			self:CancelTimer(self.rollTimer)
+			self:CancelTimer(rollTimer)
 			self:RollFinish()
 		end
 		rollTally = {}
-		self.rollTimer = self:ScheduleTimer("RollFinish", 10)
+		rollTimer = self:ScheduleTimer("RollFinish", 10)
 	end
 end
 
-function core:CHAT_MSG_SYSTEM(_, message, source)
-	if self.db.profile.rollTally and self.rollTimer then
+function mod:CHAT_MSG_SYSTEM(_, message, source)
+	if db.rollTally and rollTimer then
 		local name, roll, min, max = string.match(message, "(%S+) rolls (%d+) %((%d+)%-(%d+)%)")
 		if name and roll and min and max then
 			if min ~= "1" or max ~= "100" then
@@ -189,7 +190,7 @@ function core:CHAT_MSG_SYSTEM(_, message, source)
 	end
 end
 
-function core:RollFinish()
+function mod:RollFinish()
 	local winner
 	local ties = {}
 	for i,v in pairs(rollTally) do
@@ -215,17 +216,17 @@ function core:RollFinish()
 			self:Print(string.format("%s won the roll with a %d.", winner, rollTally[winner]))
 		end
 	end
-	self.rollTimer = false
+	rollTimer = false
 end
 
 
-function core:NixAFK(_, _, ...)
-	return (not not self.db.profile.nixAFK), ...;
+function mod:NixAFK(_, _, ...)
+	return (not not db.nixAFK), ...;
 end
 
 
 -- Officer Phone ---------------------------------------------------------------
-function core:CHAT_MSG_OFFICER(_, msg)
+function mod:CHAT_MSG_OFFICER(_, msg)
 	local _,_,numA,numB,numC  = msg:find("!phone %(?(%d+)%)?.(%d+).(%d+)");
 	local _,_,name = msg:find("!phone (%w+)");
 	
@@ -249,7 +250,7 @@ function core:CHAT_MSG_OFFICER(_, msg)
 	SetGuildRosterShowOffline(setting);
 end
 
-function core:CheckPhone(index)
+function mod:CheckPhone(index)
 	local name, rank, _, _, _, _, _, onote = GetGuildRosterInfo(index);
 	local a, b, c = onote:match("%(?(%d%d%d)%)?.(%d%d%d).(%d%d%d%d)");
 	if (not rank:find("Alt") and not rank:find("Non")) then
@@ -262,7 +263,7 @@ function core:CheckPhone(index)
 end
 
 -- Mark Star on Target ---------------------------------------------------------
-function core:TargetUnit(name)
+function mod:TargetUnit(name)
 	if name and GetNumPartyMembers() == 0 and GetNumRaidMembers() == 0 then
 		self:RegisterEvent("UNIT_TARGET", function(_, unit)
 			if unit == "player" then
@@ -276,7 +277,7 @@ function core:TargetUnit(name)
 end
 
 -- Achieve Load ----------------------------------------------------------------
-function core:AchievementFrame_LoadUI(...)
+function mod:AchievementFrame_LoadUI(...)
 	local args = {self.hooks["AchievementFrame_LoadUI"](...)}
 	AchievementFrame_SetFilter(3)
 	self:Unhook("AchievementFrame_LoadUI")

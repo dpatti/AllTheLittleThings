@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Macros", "AceTimer-3.0", "AceConsole-3.0")
-local db = core.db.profile[mod:GetName()]
+local mod = core:NewModule("Macros", "AceTimer-3.0")
+local db
 
 local defaults = {
 }
@@ -8,18 +8,19 @@ local options = {
 }
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
-	core:RegisterSlashCommand("DisbandRaid", "dr", "disbandraid")
-	core:RegisterSlashCommand("InviteGuild", "ig", "inviteguild")
-	core:RegisterSlashCommand("PromoteAll", "pa", "promoteall")
-	core:RegisterSlashCommand("DemoteAll", "da", "demoteall")
-	core:RegisterSlashCommand("PrintLoot", "pl", "printloot")
-	core:RegisterSlashCommand("ClearMarks", "cm", "clearmarks")
-	core:RegisterSlashCommand("MasterLoot", "ml", "masterloot")
-	core:RegisterSlashCommand("RandomLoot", "rl", "randomloot")
-	core:RegisterSlashCommand("FlaskCheck", "fc", "flaskcheck")
-	core:RegisterSlashCommand("Countdown", "cd", "countdown")
-	core:RegisterSlashCommand("RosterCheck", "rc", "rostercheck")
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
+	self:RegisterSlashCommand("DisbandRaid", "dr", "disbandraid")
+	self:RegisterSlashCommand("InviteGuild", "ig", "inviteguild")
+	self:RegisterSlashCommand("PromoteAll", "pa", "promoteall")
+	self:RegisterSlashCommand("DemoteAll", "da", "demoteall")
+	self:RegisterSlashCommand("PrintLoot", "pl", "printloot")
+	self:RegisterSlashCommand("ClearMarks", "cm", "clearmarks")
+	self:RegisterSlashCommand("MasterLoot", "ml", "masterloot")
+	self:RegisterSlashCommand("RandomLoot", "rl", "randomloot")
+	self:RegisterSlashCommand("FlaskCheck", "fc", "flaskcheck")
+	self:RegisterSlashCommand("Countdown", "cd", "countdown")
+	self:RegisterSlashCommand("RosterCheck", "rc", "rostercheck")
 end
 
 function mod:DisbandRaid()
@@ -92,7 +93,7 @@ function mod:RandomLoot()
 	end 
 end
 
-function core:FlaskCheck()
+function mod:FlaskCheck()
 	local now = GetTime()
 	for i=1,GetNumRaidMembers() do
 		for j=1,32 do 

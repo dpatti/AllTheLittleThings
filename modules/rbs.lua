@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
 local mod = core:NewModule("RBS Mods", "AceEvent-3.0", "AceHook-3.0")
-local db = core.db.profile[mod:GetName()]
+local db
 
 local defaults = {
 }
@@ -8,6 +8,7 @@ local options = {
 }
 
 function mod:OnInitialize()
+	db = core.db.profile[self:GetName()] or {}
 	self:RegisterEvent("ADDON_LOADED")
 end
 

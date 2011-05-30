@@ -1,6 +1,6 @@
-local core = LibStub("AceAddon-4.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Battlegrounds", "AceEvent-3.0", "AceConsole-3.0")
-local db = core.db.profile[mod:GetName()]
+local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
+local mod = core:NewModule("Battlegrounds", "AceEvent-3.0", "AceHook-3.0")
+local db
 
 local defaults = {
 	autoWG = false,
@@ -25,12 +25,13 @@ local gilneasTimes = { -- time in seconds to get a point
 	[2] = 3,
 	[3] = 1/3,
 }
-core.wgStatus = 0
-core.flagStatus = 0
+local wgStatus = 0
+local flagStatus = 0
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
-	core:RegisterSlash("ArathiPrint", "ab", "arathibasin")
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
+	self:RegisterSlashCommand("ArathiPrint", "ab", "arathibasin")
 end
 
 function mod:OnEnable()
@@ -96,12 +97,12 @@ function mod:BATTLEFIELD_MGR_ENTRY_INVITE()
 end
 
 -- Eye of the Storm ------------------------------------------------------------
-function core:BattlegroundMessage(event, msg)
+function mod:BattlegroundMessage(event, msg)
 	local faction = ((event=="CHAT_MSG_BG_SYSTEM_ALLIANCE" and 1) or 2)
 	if string.find(msg, "captured.+flag") or string.find(msg, "dropped.+flag") then
-		self.flagStatus = 0
+		flagStatus = 0
 	elseif string.find(msg, "taken.+flag") then
-		self.flagStatus = faction
+		flagStatus = faction
 	end
 end
 
@@ -109,15 +110,15 @@ function mod:WorldStateAlwaysUpFrame_Update(...)
 	self.hooks["WorldStateAlwaysUpFrame_Update"](...)
 	if db.eotsFlag and GetRealZoneText() == "Eye of the Storm" then
 		local points = {[0]=0, 75, 85, 100, 500}
-		if self.flagStatus > 0 then
-			local i = self.flagStatus + 1
+		if flagStatus > 0 then
+			local i = flagStatus + 1
 			if select(3, GetWorldStateUIInfo(i)) then -- extra if since I got a lua error while leaving a BG once
 				local _, _, full, bases, score = string.find(select(3, GetWorldStateUIInfo(i)), "(Bases: (%d).-(%d+)/.+)")
 				if not full then return end
 				-- self:Print(string.find(select(3, GetWorldStateUIInfo(i)), "(Bases: (%d).-(%d+)/.+)"))
 				-- self:Print(GetWorldStateUIInfo(i))
 				local nScore = "|cff00ff00" .. (tonumber(score)+points[tonumber(bases)]) .. "|r"
-				local frame = _G["AlwaysUpFrame"..self.flagStatus.."Text"]
+				local frame = _G["AlwaysUpFrame"..flagStatus.."Text"]
 				if frame then
 					frame:SetText(string.gsub(full, score.."/", nScore.."/"))
 				end
@@ -127,8 +128,8 @@ function mod:WorldStateAlwaysUpFrame_Update(...)
 end
 
 -- function mod:OnKeyDown()
--- 	if self.wgStatus > 0 and GetRealZoneText() ~= "Wintergrasp" then
--- 		self.wgStatus = 0
+-- 	if wgStatus > 0 and GetRealZoneText() ~= "Wintergrasp" then
+-- 		wgStatus = 0
 -- 		BattlefieldMgrEntryInviteResponse(1, 1)
 -- 	end
 -- end

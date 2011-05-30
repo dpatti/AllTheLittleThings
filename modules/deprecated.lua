@@ -1,7 +1,7 @@
 -- These are here for historical purposes only -- do not include in .toc
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
 local mod = core:NewModule("Deprecated", "AceEvent-3.0")
-local db = core.db.profile[mod:GetName()]
+local db
 
 local defaults = {
 	macroSwap = false,
@@ -15,13 +15,14 @@ local options = {
 }
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
-	core:RegisterSlashCommand("method", "slsh1", "slash2")
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
+	self:RegisterSlashCommand("method", "slsh1", "slash2")
 end
 
 -- Lich King Flame Cap Macro ---------------------------------------------------
 local macro = "MI+FC";
-function core:ZoneChange()
+function mod:ZoneChange()
 	if (db.macroSwap and UnitName("player")=="Chira" and GetMacroIndexByName(macro)>0) then
 		if (GetSubZoneText() == "The Frozen Throne" and self:GetMode()>3) then
 			EditMacro(GetMacroIndexByName(macro), nil, nil, GetMacroBody(macro):gsub("Flame Caq", "Flame Cap"));
@@ -31,13 +32,13 @@ function core:ZoneChange()
 	end
 end
 
-function core:GetMode()
+function mod:GetMode()
 	local _, _, diff, _, _, dynHeroic, dynFlag = GetInstanceInfo(); 
 	return diff; -- (dynFlag and (2-(diff%2)+2*dynHeroic)) or diff; 
 end
 
 -- Attempt to monitor n52 problem ----------------------------------------------
-function core:Nostromo()
+function mod:Nostromo()
 	local keys = {"W", "A", "S", "D"}
 	local xVal = {1, 0, 1, 2}
 	local yVal = {0, 1, 1, 1}
@@ -75,9 +76,9 @@ function core:Nostromo()
 end
 
 -- creates a text string and hooks every CLEU to try and find a problematic addon
-function core:SetupAddonDebug()
+function mod:SetupAddonDebug()
 	local frame = CreateFrame("frame")
-	frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", self.db.profile.addonDebug.x, self.db.profile.addonDebug.y)
+	frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.addonDebug.x, db.addonDebug.y)
 	frame:SetSize(100, 30)
 	frame:EnableMouse(true)
 	frame:SetMovable(true)
@@ -88,8 +89,8 @@ function core:SetupAddonDebug()
 	end)
 	frame:SetScript("OnDragStop", function(self)
 		self:StopMovingOrSizing()
-		core.db.profile.addonDebug.x = self:GetLeft()
-		core.db.profile.addonDebug.y = self:GetTop()
+		db.addonDebug.x = self:GetLeft()
+		db.addonDebug.y = self:GetTop()
 	end)
 
 	local text = frame:CreateFontString(nil, nil, "GameFontNormal")
@@ -127,7 +128,7 @@ function core:SetupAddonDebug()
 end
 
 -- Bug with text in animations -------------------------------------------------
-function core:BugInit()
+function mod:BugInit()
 	local f = CreateFrame("frame")
 	f:SetSize(50, 50)
 	f:SetPoint("CENTER")
@@ -189,7 +190,7 @@ local function my_hash(key, ...)
 end
 
 -- Saampson Shards and Deathblood Venom deposit --------------------------------
-function core:CHAT_MSG_LOOT(_, message, source)
+function mod:CHAT_MSG_LOOT(_, message, source)
 	-- if (message:find("Saampson") and message:find("Shadowfrost Shard")) then
 		-- SendChatMessage(format("Saampson Shard Count: %d", math.random(15, 50)), "raid");
 	-- end
@@ -212,10 +213,10 @@ function core:CHAT_MSG_LOOT(_, message, source)
 end
 
 -- Consolidate Thresh
-function core:UnitAura(...)
+function mod:UnitAura(...)
 	name, rank, icon, count, dispelType, duration, expires, caster, isStealable, shouldConsolidate, spellID = self.hooks["UnitAura"](...)
-	if expires and (self.db.profile.consolidateThresh > 0) then
-		if ((expires-GetTime())/60 > self.db.profile.consolidateThresh) or (name:find("Aura") or name:find("Totem")) or (shouldConsolidate == 1) then
+	if expires and (db.consolidateThresh > 0) then
+		if ((expires-GetTime())/60 > db.consolidateThresh) or (name:find("Aura") or name:find("Totem")) or (shouldConsolidate == 1) then
 			shouldConsolidate = 1
 		else
 			shouldConsolidate = nil
@@ -227,7 +228,7 @@ end
 
 
 -- Slash Commands
-function core:SlashProcess(msg)
+function mod:SlashProcess(msg)
 	if msg == "ilevel" or msg == "il" then
 		self:RaidDump("Tallying iLevel Sums...")
 		r = {}
@@ -253,7 +254,7 @@ function core:SlashProcess(msg)
 		self:RaidDump("---")
 	elseif msg == "markxp" then
 		-- write all current
-		local db = self.db.profile.guildXPMarks
+		local db = db.guildXPMarks or {}
 		local num = #db+1
 		
 		db[num] = { 
@@ -280,7 +281,7 @@ function core:SlashProcess(msg)
 		self:Print(format("Created new mark set #%d; suggested UI reload", num))
 	elseif msg:find("diff ") then
 		local setNum = tonumber(msg:match("diff (%d+)"))
-		local set = setNum and self.db.profile.guildXPMarks[setNum]
+		local set = setNum and db.guildXPMarks[setNum]
 		
 		if not set then
 			self:Print(format("Could not find split %d", setNum))
@@ -397,7 +398,7 @@ end
 
 -- Hallow's end
 self.hallowBuff = nil
-function core:UNIT_AURA(_, unit)
+function mod:UNIT_AURA(_, unit)
 	-- if we haven't set the initial value yet, set and quit
 	if (self.hallowBuff == nil) then
 		self.hallowBuff = not not UnitDebuff("player", "Tricked or Treated")
@@ -414,10 +415,10 @@ function core:UNIT_AURA(_, unit)
 			self:Print("Halloween debuff lost!");
 			self.hallowBuff = false;
 		elseif (not self.hallowBuff and hasBuff()) then
-			self.db.profile.halloween = self.db.profile.halloween + 1;
+			db.halloween = db.halloween + 1;
 			-- pick transitive
 			local transitive = TRANSITIVES[math.random(#TRANSITIVES)];
-			self:Print(format("I will %s %d babies this year", transitive, self.db.profile.halloween))
+			self:Print(format("I will %s %d babies this year", transitive, db.halloween))
 			self.hallowBuff = true;
 		end
 	end

@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Announce", "AceEvent-3.0")
-local db = core.db.profile[mod:GetName()]
+local mod = core:NewModule("Announce", "AceEvent-3.0", "AceTimer-3.0")
+local db
 
 local defaults = {
 	interrupt = false,
@@ -56,15 +56,16 @@ local armorGlyphs = {
 }
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
-	core:RegisterSlashCommand("method", "slsh1", "slash2")
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
+	self:RegisterSlashCommand("method", "slsh1", "slash2")
 end
 
 function mod:OnEnable()
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 end
 
-function core:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
+function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
 	-- Interrupt ------------------------------------------------------------------
 	if db.interrupt and GetNumPartyMembers()>0 then
 		if event == "SPELL_INTERRUPT" and srcName == UnitName("player") then

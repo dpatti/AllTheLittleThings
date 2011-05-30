@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
 local mod = core:NewModule("Potion Mail", "AceEvent-3.0")
-local db = core.db.profile[mod:GetName()]
+local db
 
 local defaults = {
 }
@@ -18,7 +18,8 @@ local potList = {
 local mailQueue = {} -- used in /atlt pots
 
 function mod:OnInitialize()
-	core:RegisterSlashCommand("AddPotions", "pots")
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterSlashCommand("AddPotions", "pots")
 end
 
 function mod:OnEnable()
@@ -81,7 +82,7 @@ end
 	- add a command to display how much left of each is needed vs how much you have
 ]]
 local mailQueueTimer
-function core:MailQueueCheck(caller, passData)
+function mod:MailQueueCheck(caller, passData)
 	local name,data = next(mailQueue)
 	if not data then
 		return -- no need to process queue
@@ -155,7 +156,7 @@ function core:MailQueueCheck(caller, passData)
 				print("Checking item count:", inv, ct, inv<ct)
 				if inv < ct then
 					-- we don't have enough. abort.
-					core:Print(format("We don't have enough |Hitem:%d|h[%s]|h for %s. Needed %d; have %d.", item, GetItemInfo("item:"..item), name, ct, inv))
+					self:Print(format("We don't have enough |Hitem:%d|h[%s]|h for %s. Needed %d; have %d.", item, GetItemInfo("item:"..item), name, ct, inv))
 					ClearSendMail()
 					return
 				end
@@ -180,7 +181,7 @@ function core:MailQueueCheck(caller, passData)
 										if #emptySlots == 0 then
 											print("Not enough bag space to split. Aborting.")
 											ClearSendMail()
-											core:CancelAllTimers()
+											mod:CancelAllTimers()
 											return
 										end
 										-- pop empty slot off the list
@@ -221,7 +222,7 @@ function core:MailQueueCheck(caller, passData)
 		-- click send
 		mailQueue[name] = nil
 		-- self:ScheduleTimer(function()
-			-- self.mailQueue[name] = nil
+			-- mailQueue[name] = nil
 			-- ClearSendMail()
 			-- self:MailQueueCheck()
 		-- end, 5)

@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
 local mod = core:NewModule("Guild Roster", "AceEvent-3.0", "AceHook-3.0")
-local db = core.db.profile[mod:GetName()]
+local db
 
 local defaults = {
 	easyInvites = true,
@@ -20,7 +20,8 @@ local rosterRaidersCount = 0
 local rosterRaidersOnline = 0
 
 function mod:OnInitialize()
-	core:RegisterOptions(options, defaults)
+	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults)
 end
 
 function mod:OnEnable()
@@ -91,7 +92,7 @@ end
 function mod:GuildRoster_Update()
 	self:RosterUpdatePostHook()
 	
-	local view = self.guildView or GuildRosterViewDropdown.selectedValue
+	local view = guildView or GuildRosterViewDropdown.selectedValue
 	local buttons = GuildRosterContainer.buttons
 	local offset = HybridScrollFrame_GetOffset(GuildRosterContainer);
 	for i=1, #buttons do
@@ -100,7 +101,7 @@ function mod:GuildRoster_Update()
 			stripe:SetTexture(stripe.texture)
 		end
 		
-		if (UnitInRaid("player") and self.db.profile.easyInvites) then
+		if (UnitInRaid("player") and db.easyInvites) then
 			if buttons[i].guildIndex then
 				name = GetGuildRosterInfo(buttons[i].guildIndex)
 				if name and UnitInRaid(name) and (view == "playerStatus" or view == "guildStatus") then
@@ -159,7 +160,7 @@ function mod:RosterUpdatePostHook()
 	local button, index, class;
 	local totalMembers, onlineMembers = GetNumGuildMembers();
 	local selectedGuildMember = GetGuildRosterSelection();
-	local currentGuildView = self.guildView or GuildRosterViewDropdown.selectedValue
+	local currentGuildView = guildView or GuildRosterViewDropdown.selectedValue
 
 	if ( currentGuildView == "tradeskill" ) then
 		return;
@@ -316,7 +317,7 @@ function mod:RosterUpdatePostHook()
 end
 
 function mod:GuildRosterButton_OnClick(this, button, ...)
-	if self.db.profile.easyInvites and IsAltKeyDown() then
+	if db.easyInvites and IsAltKeyDown() then
 		local guildIndex = this.guildIndex
 		local name, _, _, _, _, _, _, _, online = GetGuildRosterInfo(guildIndex)
 		if online then
@@ -346,12 +347,12 @@ local function nameNum(ind)
 end
 function GetGuildRosterInfo(index)	
 	-- no need
-	if not core.rosterRaidersOnly then
-		-- core:Print("Request for", index, "FAILED: core.rosterRaidersOnly=",core.rosterRaidersOnly, "  core.inRosterUpdate=", core.inRosterUpdate)
+	if not mod.rosterRaidersOnly then
+		-- mod:Print("Request for", index, "FAILED: mod.rosterRaidersOnly=",mod.rosterRaidersOnly, "  mod.inRosterUpdate=", mod.inRosterUpdate)
 		return GetGuildRosterInfoHook(index)
 	end
 	
-	local cache = core.rosterAlteredCache
+	local cache = mod.rosterAlteredCache
 	local baseIndex = index -- the ACTUAL index that is mapped to whatever index is
 	
 	-- check cache
@@ -359,15 +360,15 @@ function GetGuildRosterInfo(index)
 	
 	isRaider = false
 	-- check if raider
-	if core:IsRaider(index) then
+	if mod:IsRaider(index) then
 		-- if they are, set flag
 		isRaider = true
 	else
 		-- if not, begin looking ahead
 		for j=baseIndex+1,GetNumGuildMembers() do
-			if core:IsRaider(cache[j] or j) then
+			if mod:IsRaider(cache[j] or j) then
 				-- when you find one, set foundIndex's cache to index and baseIndex's cache to foundIndex's
-				core:Print("Swapping",nameNum(baseIndex),"with",nameNum(j))
+				mod:Print("Swapping",nameNum(baseIndex),"with",nameNum(j))
 				cache[j] = index
 				cache[baseIndex] = j
 				-- and set our locals
@@ -379,12 +380,12 @@ function GetGuildRosterInfo(index)
 		-- if you don't find one, index is unaltered
 	end
 	
-	core:Print("Request for", nameNum(baseIndex), "returning", nameNum(index), "  isRaider =",isRaider)
+	mod:Print("Request for", nameNum(baseIndex), "returning", nameNum(index), "  isRaider =",isRaider)
 	
 	-- check flag if they're a raider
-	if isRaider or not core.inRosterUpdate then
+	if isRaider or not mod.inRosterUpdate then
 		-- if true, return actual stuff
-		if not GetGuildRosterShowOffline() and core.inRosterUpdate then
+		if not GetGuildRosterShowOffline() and mod.inRosterUpdate then
 			local online = select(9, GetGuildRosterInfoHook(index))
 			if not online then
 				return nil
@@ -396,27 +397,27 @@ function GetGuildRosterInfo(index)
 	-- if false, return nil
 end
 
-function core:IsRaider(index)
+function mod:IsRaider(index)
 	local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfoHook(index)
 	-- if a raider+ rank, or below and linked to a raider
 	-- not name tests for out of bounds check
-	if not name or ((rank <= 1) or (rank == 3) or ((rank == 4 or rank == 2) and online and self.rosterRaidersCache[note])) then
+	if not name or ((rank <= 1) or (rank == 3) or ((rank == 4 or rank == 2) and online and rosterRaidersCache[note])) then
 		return true
 	end
 	return false
 end
 
-function core:RosterUpdatePreHook()
-	wipe(self.rosterAlteredCache)
-	self.inRosterUpdate = true
-	if self.rosterRaidersOnly then
+function mod:RosterUpdatePreHook()
+	wipe(rosterAlteredCache)
+	inRosterUpdate = true
+	if rosterRaidersOnly then
 		self:Print("Update pre hook")
 	end
 end
 
-function core:RosterUpdatePostHook()
-	self.inRosterUpdate = false
-	if self.rosterRaidersOnly then
+function mod:RosterUpdatePostHook()
+	inRosterUpdate = false
+	if rosterRaidersOnly then
 		self:Print("Update post hook")
 	end
 end]]

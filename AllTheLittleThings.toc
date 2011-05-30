@@ -23,8 +23,6 @@ AllTheLittleThings.lua
 modules\announce.lua
 modules\battlegrounds.lua
 modules\chatfilter.lua
-modules\defaultui.lua
-# modules\deprecated.lua
 modules\guildroster.lua
 modules\macros.lua
 modules\miscellaneous.lua
@@ -32,5 +30,5 @@ modules\potions.lua
 modules\prat.lua
 modules\raid.lua
 modules\rbs.lua
-modules\template.lua
+modules\staging.lua
 

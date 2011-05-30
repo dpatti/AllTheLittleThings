@@ -1,6 +1,6 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
 local mod = core:NewModule("Chat Filter")
-local db = core.db.profile[mod:GetName()]
+local db
 
 local defaults = {
 }
@@ -13,6 +13,11 @@ local options = {
 }
 
 function mod:OnInitialize()
+	db = core.db.profile[self:GetName()] or {}
+	-- self:FilterAll("achievement:284")
+	self:FilterAll(nil, "Alabrooke")
+	self:FilterAll(nil, "Warrwarr")
+
 end
 
 local chatEvents = {
@@ -81,7 +86,7 @@ local chatEvents = {
 local contentFilters = { }
 local sourceFilters = { }
 
-function core:FilterAll(filter, source)
+function mod:FilterAll(filter, source)
 	if not db.filterOn then return end
 
 	if filter or source then
@@ -105,6 +110,3 @@ function core:FilterAll(filter, source)
 	end
 end
 
--- core:FilterAll("achievement:284")
-core:FilterAll(nil, "Alabrooke")
-core:FilterAll(nil, "Warrwarr")
