@@ -9,7 +9,7 @@ local options = {
 
 function mod:OnInitialize()
 	db = core.db.profile[self:GetName()] or {}
-	self:RegisterOptions(options, defaults)
+	-- self:RegisterOptions(options, defaults)
 	self:RegisterSlashCommand("DisbandRaid", "dr", "disbandraid")
 	self:RegisterSlashCommand("InviteGuild", "ig", "inviteguild")
 	self:RegisterSlashCommand("PromoteAll", "pa", "promoteall")
