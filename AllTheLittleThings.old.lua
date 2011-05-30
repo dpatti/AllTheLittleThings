@@ -58,22 +58,6 @@ local options = {
 			get = function(info) return core.db.profile.nixAFK end,
 			set = function(info, v) core.db.profile.nixAFK = v core:OnEnable() end,
 		},
-		autoWG = {
-			order = 35,
-			name = "Auto Wintergrasp Join",
-			desc = "Automatically joins Wintergrasp if in Dalaran or Ironforge. Also boots that faggot Unhidenenemy.",
-			type = "toggle",
-			get = function(info) return core.db.profile.autoWG end,
-			set = function(info, v) core.db.profile.autoWG = v core:OnEnable() end,
-		},
-		eotsFlag = {
-			order = 40,
-			name = "Eye of the Storm Flag",
-			desc = "Adds in points for a held flag based on bases owned.",
-			type = "toggle",
-			get = function(info) return core.db.profile.eotsFlag end,
-			set = function(info, v) core.db.profile.eotsFlag = v core:OnEnable() end,
-		},
 		achieveFilter = {
 			order = 45,
 			name = "Achievement Filter",
@@ -153,12 +137,6 @@ local aoeSpellWatch = {
 	["Challenging Shout"] = true,
 	["Challenging Roar"] = true,
 };
-local gilneasTimes = { -- time in seconds to get a point
-	[0] = 0,
-	[1] = 8,
-	[2] = 3,
-	[3] = 1/3,
-}
 local potList = {
 	["a"] = 58146, -- Golemblood
 	["b"] = 58145, -- Tol'vir
@@ -180,9 +158,6 @@ core.guildView = nil
 core.interruptCast = false
 core.consolidateHook = false
 core.mlOrder = {"Chira", "Devotchka", "Yawning", "Brinkley", "Toney", "Dcon"}
-core.wgStatus = 0
-core.flagStatus = 0
-core.eotsHook = false
 core.achieveHook = false
 core.hallowBuff = nil
 core.countDown = {"Pulling in 5", "4", "3", "2", "1", "Go"} -- used in /atlt cd
@@ -265,10 +240,6 @@ function core:OnEnable()
 		self:RegisterEvent("BATTLEFIELD_MGR_ENTRY_INVITE")
 	end
 	if self.db.profile.eotsFlag and not self.eotsHook then
-		self:RawHook("WorldStateAlwaysUpFrame_Update", true)
-		self.eotsHook = true
-		self:RegisterEvent("CHAT_MSG_BG_SYSTEM_ALLIANCE", "BattlegroundMessage")
-		self:RegisterEvent("CHAT_MSG_BG_SYSTEM_HORDE", "BattlegroundMessage")
 	end
 	if self.db.profile.achieveFilter and not self.achieveHook then
 		self:RawHook("AchievementFrame_LoadUI", true)
@@ -317,93 +288,11 @@ end
 function core:SlashProcess(msg)
 	if msg == "debug" then
 		self:BugInit()
-	elseif msg == "disbandraid" or msg == "dr" then
-		for i=1, GetNumRaidMembers() do
-			if not UnitIsUnit("raid"..i,"player") then 
-				UninviteUnit("raid"..i) 
-			end
-		end
-	elseif msg == "inviteguild" or msg == "ig" then
-		for i=1, select(2, GetNumGuildMembers()) do 
-			if not UnitInRaid(GetGuildRosterInfo(i)) then
-				InviteUnit(GetGuildRosterInfo(i)) 
-			end
-		end
-	elseif msg == "promoteall" or msg == "pa" then
-		for i=0, GetNumRaidMembers() do
-			PromoteToAssistant("raid"..i)
-		end
-	elseif msg == "printloot" or msg == "pl" then
-		self:RaidDump("Send tells for loot:", "raid_warning")
-		for i=1,GetNumLootItems() do 
-			self:RaidDump(GetLootSlotLink(i) .. " (" .. ({"A", "B", "C", "D", "E", "F", "G", "H"})[i] .. ")", "raid_warning")
-		end
-	elseif msg == "clearmarks" or msg == "cm" then
-		for i=8,0,-1 do
-			SetRaidTarget("player", i)
-		end
-		self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.5)
 	elseif msg == "rolltally" or msg == "rt" then
 		self:CHAT_MSG_RAID_WARNING(nil, "roll")
 	elseif msg == "phone" then
 		-- prints missing phone numbers
 		self:FindMissingPhones();
-	elseif msg == "masterloot" or msg == "ml" then
-		self:MasterLoot()
-	elseif msg == "randomloot" or msg == "rl" then
-		local members = {}
-		for i=1,40 do
-			if GetMasterLootCandidate(i) then
-				table.insert(members, i);
-			end
-		end
-		
-		for j=1, GetNumLootItems() do 
-			GiveMasterLoot(j, members[random(#members)])
-		end 
-	elseif msg == "arathibasin" or msg == "ab" then
-		if GetRealZoneText() == "Arathi Basin" then
-			local _, _, aB, aP = string.find(select(4, GetWorldStateUIInfo(1)), "(%d).-(%d+)/")
-			local _, _, hB, hP = string.find(select(4, GetWorldStateUIInfo(2)), "(%d).-(%d+)/")
-			local ttw = math.min((1600-aP)*(5-aB)*.3, (1600-hP)*(5-hB)*.3)
-			local need = math.ceil(5/((1600-hP)/(1600-aP)+1))
-			-- local timeDiff = (1600-aP)*(5-need)*.3 - (1600-hP)*need*.3)
-			-- local timeDiff = (hP-aP)/(2*need-6+(hP-aP)/math.abs(hP-aP))/3
-			local timeDiff
-			if hP > aP then
-				timeDiff = (hP - aP) / (10/3 * (1/(5-need) - 1/need))
-			elseif aP > hP then
-				timeDiff = (hP - aP) / (10/3 * (1/(need-1) - 1/(6-need)))
-			else
-				timeDiff = 0
-			end
-			self:Print(string.format("Game end: %d:%02d, Bases needed: %d", floor(ttw/60), ttw%60, need)) --, floor(timeDiff/60), timeDiff%60, timeDiff))
-		elseif GetRealZoneText() == "The Battle for Gilneas" then
-			-- gilneasTimes - table with time per point
-			local _, _, aB, aP = string.find(select(4, GetWorldStateUIInfo(1)), "(%d).-(%d+)/")
-			local _, _, hB, hP = string.find(select(4, GetWorldStateUIInfo(2)), "(%d).-(%d+)/")
-			local ttw = math.min((2000-aP)/10*gilneasTimes[aB], (2000-hP)/10*gilneasTimes[hB])
-			local need = 0
-			if (2000-aP)*8/3+hP > 2000 then
-				need = 2
-			else
-				need = 1
-			end
-			-- local timeDiff = (2000-aP)*(5-need)*.3 - (2000-hP)*need*.3)
-			-- local timeDiff = (hP-aP)/(2*need-6+(hP-aP)/math.abs(hP-aP))/3
-			-- timeDiff means: "if we both keep going at the current rate, the point when we will need one less/more base is in x:xx"
-			local timeDiff
-			if hP > aP then
-				timeDiff = (hP - aP) / (10/3 * (1/(5-need) - 1/need))
-			elseif aP > hP then
-				timeDiff = (hP - aP) / (10/3 * (1/(need-1) - 1/(6-need)))
-			else
-				timeDiff = 0
-			end
-			self:Print(string.format("Game end: %d:%02d, Bases needed: %d", floor(ttw/60), ttw%60, need))
-		else
-			self:Print("You must be in Arathi Basin or The Battle for Gilneas to use this command.")
-		end
 	elseif msg == "ilevel" or msg == "il" then
 		self:RaidDump("Tallying iLevel Sums...")
 		r = {}
@@ -429,8 +318,6 @@ function core:SlashProcess(msg)
 		self:RaidDump("---")
 	elseif msg == "combatlog" or msg == "cl" then
 		CombatLogClearEntries()
-	elseif msg == "count" or msg == "ct" then
-		self:Countdown()
 	elseif msg:match("^pots ") then
 		-- get all guild members
 		for i=1,GetNumGuildMembers() do
@@ -790,13 +677,6 @@ function core:CHAT_MSG_SYSTEM(_, message, source)
 	end
 end
 
-function core:BATTLEFIELD_MGR_ENTRY_INVITE()
-	if self.db.profile.autoWG and (GetRealZoneText() == "Dalaran" or GetRealZoneText() == "Ironforge") then
-		BattlefieldMgrEntryInviteResponse(1, 1)
-		wgStatus = 1
-		-- self:SetScript("OnKeyDown", self.OnKeyDown)
-	end
-end
 
 -- g_allDebuffs = {}
 function core:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
@@ -935,12 +815,6 @@ function core:GetMode()
 	return diff; -- (dynFlag and (2-(diff%2)+2*dynHeroic)) or diff; 
 end
 
-function core:OnKeyDown()
-	if self.wgStatus > 0 and GetRealZoneText() ~= "Wintergrasp" then
-		self.wgStatus = 0
-		BattlefieldMgrEntryInviteResponse(1, 1)
-	end
-end
 
 function core:CheckSmash()
 	local sum, str
@@ -1041,35 +915,7 @@ function core:GuildRosterButton_OnClick(this, button, ...)
 	end
 end
 
-function core:WorldStateAlwaysUpFrame_Update(...)
-	self.hooks["WorldStateAlwaysUpFrame_Update"](...)
-	if GetRealZoneText() == "Eye of the Storm" then
-		local points = {[0]=0, 75, 85, 100, 500}
-		if self.flagStatus > 0 then
-			local i = self.flagStatus + 1
-			if select(3, GetWorldStateUIInfo(i)) then -- extra if since I got a lua error while leaving a BG once
-				local _, _, full, bases, score = string.find(select(3, GetWorldStateUIInfo(i)), "(Bases: (%d).-(%d+)/.+)")
-				if not full then return end
-				-- self:Print(string.find(select(3, GetWorldStateUIInfo(i)), "(Bases: (%d).-(%d+)/.+)"))
-				-- self:Print(GetWorldStateUIInfo(i))
-				local nScore = "|cff00ff00" .. (tonumber(score)+points[tonumber(bases)]) .. "|r"
-				local frame = _G["AlwaysUpFrame"..self.flagStatus.."Text"]
-				if frame then
-					frame:SetText(string.gsub(full, score.."/", nScore.."/"))
-				end
-			end
-		end
-	end
-end
 
-function core:BattlegroundMessage(event, msg)
-	local faction = ((event=="CHAT_MSG_BG_SYSTEM_ALLIANCE" and 1) or 2)
-	if string.find(msg, "captured.+flag") or string.find(msg, "dropped.+flag") then
-		self.flagStatus = 0
-	elseif string.find(msg, "taken.+flag") then
-		self.flagStatus = faction
-	end
-end
 
 function core:AchievementFrame_LoadUI(...)
 	local args = {self.hooks["AchievementFrame_LoadUI"](...)}
