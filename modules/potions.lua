@@ -19,11 +19,11 @@ local mailQueue = {} -- used in /atlt pots
 
 function mod:OnInitialize()
 	core:RegisterSlashCommand("AddPotions", "pots")
-	self:RegisterEvent("MAIL_SHOW", "MailQueueCheck");
-	self:RegisterEvent("MAIL_SUCCESS", "MailQueueCheck");
 end
 
 function mod:OnEnable()
+	self:RegisterEvent("MAIL_SHOW", "MailQueueCheck");
+	self:RegisterEvent("MAIL_SUCCESS", "MailQueueCheck");
 end
 
 function mod:AddPotions()

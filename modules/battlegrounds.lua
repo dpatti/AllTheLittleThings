@@ -35,6 +35,7 @@ end
 
 function mod:OnEnable()
 	self:RawHook("WorldStateAlwaysUpFrame_Update", true)
+	self:RegisterEvent("BATTLEFIELD_MGR_ENTRY_INVITE")
 	self:RegisterEvent("CHAT_MSG_BG_SYSTEM_ALLIANCE", "BattlegroundMessage")
 	self:RegisterEvent("CHAT_MSG_BG_SYSTEM_HORDE", "BattlegroundMessage")
 end

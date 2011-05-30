@@ -10,30 +10,6 @@ local options = {
 	name = "All The Little Things",
 	type = 'group',
 	args = {
-		rollTally = {
-			order = 30,
-			name = "Roll Tally",
-			desc = "Tallies rolls for 8s after a raid warning with 'roll' in the message. Can also activate with /atlt rt.",
-			type = "toggle",
-			get = function(info) return core.db.profile.rollTally end,
-			set = function(info, v) core.db.profile.rollTally = v core:OnEnable() end,
-		},
-		nixAFK = {
-			order = 30,
-			name = "Remove AFK Responses",
-			desc = "Removes AFK responses when whispering AFK players.",
-			type = "toggle",
-			get = function(info) return core.db.profile.nixAFK end,
-			set = function(info, v) core.db.profile.nixAFK = v core:OnEnable() end,
-		},
-		achieveFilter = {
-			order = 45,
-			name = "Achievement Filter",
-			desc = "Sets achievement filter to Incomplete automatically.",
-			type = "toggle",
-			get = function(info) return core.db.profile.achieveFilter end,
-			set = function(info, v) core.db.profile.achieveFilter = v core:OnEnable() end,
-		},
 		officerPhone = {
 			order = 60,
 			name = "Officer Phone Records",
@@ -41,14 +17,6 @@ local options = {
 			type = 'toggle',
 			get = function(info) return core.db.profile.officerPhone end,
 			set = function(info, v) core.db.profile.officerPhone = v core:OnEnable() end,
-		},
-		markMsgFilter = {
-			order = 70,
-			name = "Mark Message Filter",
-			desc = "Filters mark messages caused by the player.",
-			type = 'toggle',
-			get = function(info) return core.db.profile.markMsgFilter end,
-			set = function(info, v) core.db.profile.markMsgFilter = v core:OnEnable() end,
 		},
 	},
 }
@@ -58,12 +26,8 @@ local defaults = {
 			x = 100,
 			y = 100,
 		},
-		alwaysDump = true,
-		isGay = false,
-		nixAFK = true,
 		consolidateThresh = 0,
 		officerPhone = true,
-		markMsgFilter = true,
 		halloween = 1,
 		guildXPMarks = { },
 	}
@@ -81,36 +45,9 @@ function core:OnInitialize()
 	-- options.args.profile = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("ATLT", options)
 	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("ATLT", "All The Little Things")
-	
-	ConsoleExec("cameradistancemaxfactor 5")
 end
 
 function core:OnEnable()
-	SetModifiedClick("TRADESEARCHADD", nil)
-	
-	if self.db.profile.rollTally then
-		self:RegisterEvent("CHAT_MSG_RAID_WARNING")
-		self:RegisterEvent("CHAT_MSG_SYSTEM")
-	end
-	if self.db.profile.nixAFK then
-		ChatFrame_AddMessageEventFilter("CHAT_MSG_AFK", function(...) return self:NixAFK(...); end);
-	end
-	if self.db.profile.markMsgFilter then
-		ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", function(_,_,msg) if (msg:find("%["..UnitName("player").."%]")) then return true; end end);
-	end
-	if self.db.profile.autoWG then
-		self:RegisterEvent("BATTLEFIELD_MGR_ENTRY_INVITE")
-	end
-	if self.db.profile.eotsFlag and not self.eotsHook then
-	end
-	if self.db.profile.achieveFilter and not self.achieveHook then
-		self:RawHook("AchievementFrame_LoadUI", true)
-		self.achieveHook = true
-	end
-	-- if (self.db.profile.consolidateThresh>0) and (not self.consolidateHook) then
-		-- self:RawHook("UnitAura", true)
-		-- self.consolidateHook = true
-	-- end
 	if (self.db.profile.officerPhone) then
 		self:RegisterEvent("CHAT_MSG_OFFICER");
 	end
@@ -130,7 +67,6 @@ function core:SlashProcess(msg)
 	if msg == "debug" then
 		self:BugInit()
 	elseif msg == "rolltally" or msg == "rt" then
-		self:CHAT_MSG_RAID_WARNING(nil, "roll")
 	elseif msg == "phone" then
 		-- prints missing phone numbers
 		self:FindMissingPhones();
@@ -356,17 +292,6 @@ function core:SlashProcess(msg)
 	end
 end
 
-function core:CHAT_MSG_RAID_WARNING(_, message)
-	if self.db.profile.rollTally and string.find(message:lower(), "roll") then
-		if self.rollTimer then
-			-- Stop current roll
-			self:CancelTimer(self.rollTimer)
-			self:RollFinish()
-		end
-		self.rollTally = {}
-		self.rollTimer = self:ScheduleTimer("RollFinish", 10)
-	end
-end
 
 function core:UNIT_AURA(_, unit)
 	-- if we haven't set the initial value yet, set and quit
@@ -533,24 +458,6 @@ function core:CheckPhone(index)
 		return name, nil;
 	end
 	return nil, nil;
-end
-
-function core:FindMissingPhones()
-	local found = false;
-	for i=1,GetNumGuildMembers() do
-		
-		local player, num = self:CheckPhone(i);
-		if (player and not num) then
-			if (not found) then
-				self:Print("Players without phone numbers:");
-				found = true;
-			end
-			self:Print(player);
-		end
-	end
-	if (not found) then
-		self:Print("All players have a phone number.");
-	end
 end
 
 function core:TargetUnit(name)
