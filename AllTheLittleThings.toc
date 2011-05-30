@@ -15,6 +15,22 @@ Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceTimer-3.0\AceTimer-3.0.xml
 
-transitive.lua
+# transitive.lua
+# PriorityQueue.lua
+
 AllTheLittleThings.lua
-PriorityQueue.lua
+
+modules\announce.lua
+modules\battlegrounds.lua
+modules\chatfilter.lua
+modules\defaultui.lua
+# modules\deprecated.lua
+modules\guildroster.lua
+modules\macros.lua
+modules\miscellaneous.lua
+modules\potions.lua
+modules\prat.lua
+modules\raid.lua
+modules\rbs.lua
+modules\template.lua
+
