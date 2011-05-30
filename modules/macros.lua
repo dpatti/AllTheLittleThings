@@ -17,6 +17,7 @@ function mod:OnInitialize()
 	core:RegisterSlashCommand("ClearMarks", "cm", "clearmarks")
 	core:RegisterSlashCommand("MasterLoot", "ml", "masterloot")
 	core:RegisterSlashCommand("RandomLoot", "rl", "randomloot")
+	core:RegisterSlashCommand("FlaskCheck", "fc", "flaskcheck")
 	core:RegisterSlashCommand("Countdown", "cd", "countdown")
 	core:RegisterSlashCommand("RosterCheck", "rc", "rostercheck")
 end
@@ -89,6 +90,23 @@ function mod:RandomLoot()
 	for j=1, GetNumLootItems() do 
 		GiveMasterLoot(j, members[random(#members)])
 	end 
+end
+
+function core:FlaskCheck()
+	local now = GetTime()
+	for i=1,GetNumRaidMembers() do
+		for j=1,32 do 
+			local player = UnitName("raid"..i)
+			name, _, _, _, _, _, expires = UnitAura("raid"..i, j)
+			if name and name:find("Flask ") then 
+				local time = expires - now
+				if time<990 and time>0 then 
+					SendChatMessage(format("%s %d:%02d", player, floor(time/60), time%60), "raid")
+					-- SendChatMessage(format("Flask ending in %d:%02d", UnitName(r), floor(time/60), time%60), "whipser", nil, player)
+				end
+			end
+		end
+	end
 end
 
 local countDown = {"Pulling in 5", "4", "3", "2", "1", "Go"} -- used in /atlt cd
