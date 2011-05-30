@@ -15,9 +15,6 @@ Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceTimer-3.0\AceTimer-3.0.xml
 
-# transitive.lua
-# PriorityQueue.lua
-
 AllTheLittleThings.lua
 
 modules\announce.lua
