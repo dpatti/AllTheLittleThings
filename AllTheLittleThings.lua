@@ -44,11 +44,26 @@ local mixins = {
 core:SetDefaultModulePrototype(prototype)
 
 function core:OnInitialize()
+	-- Get basic information about modules
+	for name, mod in self:IterateModules() do
+		defaults.profile.enabled[name] = true
+		options.args.enabled.args[name] = {
+			name = name,
+			type = 'toggle',
+		}
+	end
+
 	-- Not embedding AceConsole-3.0 so that we can have our own :Print()
 	LibStub("AceConsole-3.0").RegisterChatCommand(self, "atlt", "MainSlashHandle")
 	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
 	db = self.db.profile
+
+	-- Now that we have our SavedVars, we can toggle modules
+	for name, mod in self:IterateModules() do
+		mod:SetEnabledState(db.enabled[name])
+	end
 	
+	-- Generate our options and add them to Blizzard Interface
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("AllTheLittleThings", options)
 	local ACD = LibStub("AceConfigDialog-3.0")
 	ACD:AddToBlizOptions("AllTheLittleThings", "AllTheLittleThings")
@@ -57,13 +72,6 @@ end
 function core:OnEnable()
 	self.db:RegisterDefaults(defaults)
 	for mod,fn in pairs(databaseCallback) do print(mod) fn(db.modules[mod]) end
-	for name, mod in self:IterateModules() do
-		if db.enabled[name] then
-			mod:Enable()
-		else
-			mod:Disable()
-		end
-	end
 end
 
 function core:OnDisable()
@@ -83,12 +91,7 @@ end
 -- two registry functions called with self=mod
 function core:RegisterOptions(modOptions, modDefaults, callback)
 	local name = self:GetName()
-	defaults.profile.enabled[name] = true
 	defaults.profile.modules[name] = modDefaults
-	options.args.enabled.args[name] = {
-		name = name,
-		type = 'toggle',
-	}
 	options.args.modules.args[name] = {
 		name = name,
 		type = 'group',
