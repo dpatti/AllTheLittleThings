@@ -13,11 +13,10 @@ local options = {
 }
 
 function mod:OnInitialize()
-	db = core.db.profile[self:GetName()] or {}
+	self:RegisterOptions(options, defaults, function(d) db=d end)
 	-- self:FilterAll("achievement:284")
 	self:FilterAll(nil, "Alabrooke")
 	self:FilterAll(nil, "Warrwarr")
-
 end
 
 local chatEvents = {
@@ -87,12 +86,13 @@ local contentFilters = { }
 local sourceFilters = { }
 
 function mod:FilterAll(filter, source)
-	if not db.filterOn then return end
 
 	if filter or source then
 		if not next(contentFilters) then
+			-- first time registry
 			for _,v in ipairs(chatEvents) do
 				ChatFrame_AddMessageEventFilter(v, function(self, event, msg, sender)
+					if not db.filterOn then return end
 					if sourceFilters[sender] then
 						return true
 					end

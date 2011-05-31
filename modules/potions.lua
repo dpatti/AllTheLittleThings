@@ -18,7 +18,6 @@ local potList = {
 local mailQueue = {} -- used in /atlt pots
 
 function mod:OnInitialize()
-	db = core.db.profile[self:GetName()] or {}
 	self:RegisterSlashCommand("AddPotions", "pots")
 end
 

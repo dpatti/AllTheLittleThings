@@ -38,8 +38,7 @@ local options = {
 }
 
 function mod:OnInitialize()
-	db = core.db.profile[self:GetName()] or {}
-	self:RegisterOptions(options, defaults)
+	self:RegisterOptions(options, defaults, function(d) db=d print(d, db) end)
 	self:RegisterSlashCommand("RollTally", "rt", "rolltally")
 	self:RegisterSlashCommand("FindPhones", "phone")
 	self:RegisterSlashCommand("ActiveTally", "at", "activetally")
@@ -58,7 +57,7 @@ function mod:OnEnable()
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
 
 	-- nix afk
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_AFK", function(...) return self:NixAFK(...); end);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_AFK", function(...) return self:NixAFK(...) end)
 
 	-- achieve filter
 	self:RawHook("AchievementFrame_LoadUI", true)
@@ -67,7 +66,7 @@ function mod:OnEnable()
 	self:SecureHook("TargetUnit")
 
 	-- filter self targets
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", function(_,_,msg) if (msg:find("%["..UnitName("player").."%]")) then return true; end end);
+	ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", function(_,_,msg) if (msg:find("%["..UnitName("player").."%]")) then return true end end)
 
 	-- officer phone
 	self:RegisterEvent("CHAT_MSG_OFFICER");
@@ -221,7 +220,7 @@ end
 
 
 function mod:NixAFK(_, _, ...)
-	return (not not db.nixAFK), ...;
+	return (not not db.nixAFK), ...
 end
 
 

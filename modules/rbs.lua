@@ -8,7 +8,6 @@ local options = {
 }
 
 function mod:OnInitialize()
-	db = core.db.profile[self:GetName()] or {}
 end
 
 function mod:OnEnable()

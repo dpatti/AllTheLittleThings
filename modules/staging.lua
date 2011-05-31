@@ -8,7 +8,6 @@ local options = {
 }
 
 function mod:OnInitialize()
-	db = core.db.profile[self:GetName()] or {}
-	self:RegisterOptions(options, defaults)
+	self:RegisterOptions(options, defaults, function(d) db=d end)
 end
 

@@ -1,4 +1,4 @@
-local core = LibStub("AceAddon-3.0"):NewAddon("AllTheLittleThings", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0", "AceTimer-3.0")
+local core = LibStub("AceAddon-3.0"):NewAddon("AllTheLittleThings", "AceEvent-3.0", "AceHook-3.0", "AceTimer-3.0")
 local db
 atlt = core
 
@@ -7,7 +7,7 @@ local defaults = {
 	
 	},
 }
-local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v core:UpdatePins(true) end
+local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v end
 local options_getter = function(info) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end return t[info[#info]] end
 local options = {
 	name = "AllTheLittleThings",
@@ -15,20 +15,25 @@ local options = {
 	set = options_setter,
 	get = options_getter,
 	args = {
-	
 	},
 }
+local databaseCallback = {} -- functions to call when database is ready
 local slashCallback = {}
 local slashList = {}
 
 local prototype = {}
+local mixins = {
+	"RegisterOptions",
+	"RegisterSlashCommand",
+	"Print",
+}
 core:SetDefaultModulePrototype(prototype)
-core:SetDefaultModuleLibraries("AceConsole-3.0")
 
 function core:OnInitialize()
-	db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
-	self.db = db
-	self:RegisterChatCommand("atlt", "MainSlashHandle")
+	-- Not embedding AceConsole-3.0 so that we can have our own :Print()
+	LibStub("AceConsole-3.0").RegisterChatCommand(self, "atlt", "MainSlashHandle")
+	self.db = LibStub("AceDB-3.0"):New("AllTheLittleThingsDB", defaults, "Default")
+	db = self.db.profile
 	
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("AllTheLittleThings", options)
 	local ACD = LibStub("AceConfigDialog-3.0")
@@ -36,14 +41,15 @@ function core:OnInitialize()
 end
 
 function core:OnEnable()
+	self.db:RegisterDefaults(defaults)
+	for mod,fn in pairs(databaseCallback) do fn(db[mod]) end
 end
 
 function core:OnDisable()
 end
 
 -- two registry functions called with self=mod
-local defaultsTimer
-function core:RegisterOptions(modOptions, modDefaults)
+function core:RegisterOptions(modOptions, modDefaults, callback)
 	local name = self:GetName()
 	defaults.profile[name] = modDefaults
 	options.args[name] = {
@@ -52,12 +58,7 @@ function core:RegisterOptions(modOptions, modDefaults)
 		args = modOptions
 	}
 
-	if defaultsTimer then
-		core:CancelTimer(defaultsTimer)
-	end
-	defaultsTimer = core:ScheduleTimer(function()
-		db:RegisterDefaults(defaults)
-	end, 0.01)
+	databaseCallback[name] = callback
 end
 
 function core:RegisterSlashCommand(callback, ...)
@@ -67,7 +68,9 @@ function core:RegisterSlashCommand(callback, ...)
 		if slashCallback[slash] then
 			error(("Slash command paramter already registered: '%s'"):format(slash))
 		end
-		slashCallback[slash] = self[callback]
+		slashCallback[slash] = function(...)
+			self[callback](self, ...)
+		end
 
 		if not keyword or slash:len() < keyword:len() then
 			keyword = slash
@@ -92,7 +95,13 @@ function core:MainSlashHandle(msg)
 	end
 end
 
+function core:Print(...)
+	LibStub("AceConsole-3.0").Print('atlt', ...)
+end
+
+
 -- fill out our prototype now that our addon's indicies are populated
-prototype.RegisterOptions = core.RegisterOptions
-prototype.RegisterSlashCommand = core.RegisterSlashCommand
+for _,method in ipairs(mixins) do
+	prototype[method] = core[method]
+end
 
