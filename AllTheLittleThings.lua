@@ -4,7 +4,8 @@ atlt = core
 
 local defaults = {
 	profile = {
-	
+		enabled = { },
+		modules = { },
 	},
 }
 local options_setter = function(info, v) local t=core.db.profile for k=1,#info-1 do t=t[info[k]] end t[info[#info]]=v end
@@ -15,6 +16,19 @@ local options = {
 	set = options_setter,
 	get = options_getter,
 	args = {
+		enabled = {
+			name = "Toggle Modules",
+			type = 'group',
+			order = 10,
+			args = { },
+			set = function(info, v) options_setter(info, v) core:SetModule(info[#info], v) end,
+		},
+		modules = {
+			name = "Module Options",
+			type = 'group',
+			order = 20,
+			args = { },
+		},
 	},
 }
 local databaseCallback = {} -- functions to call when database is ready
@@ -42,17 +56,40 @@ end
 
 function core:OnEnable()
 	self.db:RegisterDefaults(defaults)
-	for mod,fn in pairs(databaseCallback) do fn(db[mod]) end
+	for mod,fn in pairs(databaseCallback) do print(mod) fn(db.modules[mod]) end
+	for name, mod in self:IterateModules() do
+		if db.enabled[name] then
+			mod:Enable()
+		else
+			mod:Disable()
+		end
+	end
 end
 
 function core:OnDisable()
 end
 
+function core:SetModule(name, status)
+	local mod = self:GetModule(name)
+	if mod then
+		if status then
+			mod:Enable()
+		else
+			mod:Disable()
+		end
+	end
+end
+
 -- two registry functions called with self=mod
 function core:RegisterOptions(modOptions, modDefaults, callback)
 	local name = self:GetName()
-	defaults.profile[name] = modDefaults
-	options.args[name] = {
+	defaults.profile.enabled[name] = true
+	defaults.profile.modules[name] = modDefaults
+	options.args.enabled.args[name] = {
+		name = name,
+		type = 'toggle',
+	}
+	options.args.modules.args[name] = {
 		name = name,
 		type = 'group',
 		args = modOptions
