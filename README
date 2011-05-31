@@ -1,1 +1,17 @@
 AllTheLittleThings is an addon for World of Warcraft that I created as my way of storing small snippets of code or simply code that was not important enough to stand on its own. This is my recent rewrite, breaking everything up into modules and making it much simpler to extend. While the core was written entirely new, many of the snippets in any module were written a long time ago, so there is more than a fair share of poor lua programming practices floating around.
+
+Module List:
+* Announce - Announcements made to a chat channel in response to an event (likely COMBAT_LOG_EVENT_UNFILTERED)
+* Battlegrounds - Modifications and slash commands to supplement the Blizzard default score frame
+* ChatFilter - A method to filter a specific phrase or person from every chat event
+* GuildRoster - Changes to the guild roster to assist with a guild raid environment
+* Macros - A collection of slash commands to do tasks slightly more complicated than what could fit in a macro
+* Miscellaneous - Many smaller snippets and bits that don't fit elsewhere
+* Potions - A script to turn a slash command into an automailing list of potions to guild members
+* Prat - Modifications to Prat's AltNames module
+* Raid - Methods to automate some processes of forming a raid
+* RBS - Modifications to RBS to include extra buttons for useful macro commands
+* Staging - A file to allow for building new modules without having to reload the client due to a new file creation
+* 
+* Deprecated - A collection of old scripts that no longer have a purpose; likely will throw multiple errors if ran
+* Template - Base template to be used for new modules
