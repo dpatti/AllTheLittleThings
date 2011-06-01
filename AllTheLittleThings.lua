@@ -71,7 +71,7 @@ end
 
 function core:OnEnable()
 	self.db:RegisterDefaults(defaults)
-	for mod,fn in pairs(databaseCallback) do print(mod) fn(db.modules[mod]) end
+	for mod,fn in pairs(databaseCallback) do fn(db.modules[mod]) end
 end
 
 function core:OnDisable()
