@@ -430,3 +430,35 @@ end
 -- 48646,48645,48644,48643,48642,48616,48615,48614,48613,48612,48584,48583,48582,48581,48580,48547,48546,48545,48544,48543,48490,48489,48488,48487,48486,48455,48453,48451,48447,48433,48385,48384,48383,48382,48381,48355,48354,48353,48352,48351,48325,48324,48323,48322,48321,48294,48293,48292,48291,48290,48264,48263,48262,48261,48260,48232,48231,48230,48229,48228,48207,48206,48205,48204,48203,48172,48171,48170,48169,48168,48142,48141,48140,48139,48138,48086,48085,48084,48083,48082,48037,48035,48033,48031,48029,47792,47791,47790,47789,47788,47762,47761,47760,47759,47758,
 -- }
 
+-- Used these for debugging auto complete problem ------------------------------
+function ChatHooky(func)
+	if not _G[func] then return end
+
+	local old = _G[func]
+	_G[func] = function(...)
+		print("----"..func.."----")
+
+		local t = ...
+		if t == ChatFrame1EditBox then
+			print("Before GetText():", t:GetText())
+		end
+
+		print("Params:", ...)
+		local r = old(...)
+		print("Return value:", r)
+
+		if t == ChatFrame1EditBox then
+			print("After GetText():", t:GetText())
+		end
+
+		print("----/"..func.."----")
+
+		return r
+	end
+end
+-- ChatHooky("ChatEdit_ParseText")
+-- ChatHooky("ChatEdit_SendText")
+-- ChatHooky("ChatEdit_HandleChatType")
+-- ChatHooky("ChatEdit_ExtractTellTarget")
+
+

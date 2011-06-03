@@ -282,3 +282,27 @@ function mod:AchievementFrame_LoadUI(...)
 	self:Unhook("AchievementFrame_LoadUI")
 	return unpack(args);
 end
+
+
+-- Fix to typing /w chi<cr> with auto complete ---------------------------------
+-- change our OnEscapePressed to Reset
+function ChatEdit_OnEscapePressed(editBox)
+	ChatEdit_ResetChatTypeToSticky(editBox);
+	if ( not editBox.isGM and (GetCVar("chatStyle") ~= "im" or editBox == MacroEditBox) ) then
+		editBox:SetText("");
+		editBox:Hide();
+	else
+		ChatEdit_DeactivateChat(editBox);
+	end
+end
+-- change the editbox's OnEscape to a real OnEscape
+for i=1,NUM_CHAT_WINDOWS do
+	local f = _G["ChatFrame"..i.."EditBox"]
+	if f then
+		f:SetScript("OnEscapePressed", function(editBox)
+			if ( not AutoCompleteEditBox_OnEscapePressed(editBox) ) then
+				ChatEdit_OnEscapePressed(editBox)
+			end
+		end)
+	end
+end
