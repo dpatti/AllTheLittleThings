@@ -124,7 +124,7 @@ function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcNam
 					return
 				end
 			end
-			print(format("Warning: %s is not glyphed", spellName))
+			self:Print(format("Warning: %s is not glyphed", spellName))
 		end
 	end
 end

@@ -29,7 +29,7 @@ local wgStatus = 0
 local flagStatus = 0
 
 function mod:OnInitialize()
-	self:RegisterOptions(options, defaults, function(d) db=d print(d) end)
+	self:RegisterOptions(options, defaults, function(d) db=d end)
 	self:RegisterSlashCommand("ArathiPrint", "ab", "arathibasin")
 end
 

@@ -38,7 +38,7 @@ local options = {
 }
 
 function mod:OnInitialize()
-	self:RegisterOptions(options, defaults, function(d) db=d print(d, db) end)
+	self:RegisterOptions(options, defaults, function(d) db=d end)
 	self:RegisterSlashCommand("RollTally", "rt", "rolltally")
 	self:RegisterSlashCommand("FindPhones", "phone")
 	self:RegisterSlashCommand("ActiveTally", "at", "activetally")
