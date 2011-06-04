@@ -71,7 +71,11 @@ end
 
 function core:OnEnable()
 	self.db:RegisterDefaults(defaults)
-	for mod,fn in pairs(databaseCallback) do fn(db.modules[mod]) end
+	for mod,fn in pairs(databaseCallback) do 
+		xpcall(function()
+			fn(db.modules[mod])
+		end, geterrorhandler())
+	end
 end
 
 function core:OnDisable()
