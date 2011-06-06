@@ -119,7 +119,6 @@ function mod:ZONE_CHANGED_NEW_AREA()
 	end
 end
 
-local pid = UnitGUID("player")
 function mod:COMBAT_LOG_EVENT_UNFILTERED(_, _, event, _, ...)
 	if not enabled or not combatEvents[event] then return end
 
@@ -131,7 +130,7 @@ function mod:COMBAT_LOG_EVENT_UNFILTERED(_, _, event, _, ...)
 	end
 
 	-- source is player
-	if pid ~= srcGUID then return end
+	if UnitGUID("player") ~= srcGUID then return end
 
 	local category = spellWatch[spellId]
 	if category then
@@ -148,10 +147,11 @@ function mod:COMBAT_LOG_EVENT_UNFILTERED(_, _, event, _, ...)
 end
 
 function mod:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, _, _, spellId)
-	if not enabled or UnitGUID(unit) ~= pid then return end
+	if not enabled or UnitGUID(unit) ~= UnitGUID("player") then return end
 	
 	local category = spellWatch[spellId]
 	if category then
+		-- self:Print("UNIT_SPELLCAST_SUCCEEDED", category, spellId)
 		if not auras[category] then
 			local duration = durations[category]
 			if not duration then
@@ -169,6 +169,8 @@ function mod:SpellStart(category, endTime)
 	local time = GetTime()
 	if not icon or endTime<time then return end
 
+	-- self:Print("Start", category, endTime-GetTime())
+
 	lastAvailable[category] = nil
 	local duration = endTime - time
 	icon.cooldown = duration
@@ -179,6 +181,8 @@ end
 function mod:SpellStop(category, nocd)
 	local icon = icons[category]
 	if not icon then return end
+
+	-- self:Print("Stop", category)
 
 	lastAvailable[category] = GetTime()
 	icon.cooldown = 0
