@@ -1,5 +1,5 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("PotionMail", "AceEvent-3.0")
+local mod = core:NewModule("PotionMail", "AceEvent-3.0", "AceTimer-3.0")
 local db
 
 local defaults = {
@@ -26,7 +26,7 @@ function mod:OnEnable()
 	self:RegisterEvent("MAIL_SUCCESS", "MailQueueCheck");
 end
 
-function mod:AddPotions()
+function mod:AddPotions(msg)
 	-- get all guild members
 	for i=1,GetNumGuildMembers() do
 		local name, rank = GetGuildRosterInfo(i)
