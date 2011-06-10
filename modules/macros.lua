@@ -187,6 +187,7 @@ function mod:AuctionHouseBuyout()
 
 		-- no purchase made, buy selected
 		PlaceAuctionBid("list", selected, price)
+		self:Print("All auctions bought.")
 	end
 end
 
