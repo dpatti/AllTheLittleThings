@@ -1,5 +1,5 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Macros", "AceTimer-3.0")
+local mod = core:NewModule("Macros", "AceTimer-3.0", "AceEvent-3.0")
 local db
 
 local defaults = {
@@ -20,6 +20,8 @@ function mod:OnInitialize()
 	self:RegisterSlashCommand("FlaskCheck", "fc", "flaskcheck")
 	self:RegisterSlashCommand("Countdown", "cd", "countdown")
 	self:RegisterSlashCommand("RosterCheck", "rc", "rostercheck")
+	self:RegisterSlashCommand("AuctionHouseBuyout", "ahbo")
+	self:RegisterEvent("AUCTION_ITEM_LIST_UPDATE")
 end
 
 function mod:DisbandRaid()
@@ -162,5 +164,33 @@ function SetItemRef(id, ...)
 	else
 		return SetItemRefHook(id, ...)
 	end
+end
+
+-- mass buyout
+local bought = {}
+function mod:AuctionHouseBuyout()
+	local selected = GetSelectedAuctionItem("list")
+	if selected>0 then 
+		local name,_,count,_,_,_,_,_,price = GetAuctionItemInfo("list", selected)
+		for j=1,50 do 
+			local t_name,_,t_count,_,_,_,_,_,t_price = GetAuctionItemInfo("list", j)
+			-- must be same item name and equal or less price per unit
+			if (t_name == name) and (t_price>0) and (t_price/t_count <= price/count) then 
+				if not bought[j] and selected ~= j then
+					--self:Print("Buying",j,"at",t_price)
+					PlaceAuctionBid("list", j, t_price)
+					bought[j] = true
+					return
+				end
+			end 
+		end 
+
+		-- no purchase made, buy selected
+		PlaceAuctionBid("list", selected, price)
+	end
+end
+
+function mod:AUCTION_ITEM_LIST_UPDATE()
+	wipe(bought)
 end
 
