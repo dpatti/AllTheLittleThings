@@ -70,6 +70,9 @@ function mod:OnEnable()
 
 	-- officer phone
 	self:RegisterEvent("CHAT_MSG_OFFICER");
+
+	-- louder LFD sound
+	self:RegisterEvent("LFG_PROPOSAL_SHOW");
 end
 
 -- Slash Commands --------------------------------------------------------------
@@ -305,4 +308,10 @@ for i=1,NUM_CHAT_WINDOWS do
 			end
 		end)
 	end
+end
+
+
+-- LFD Louder Noise ------------------------------------------------------------
+function mod:LFG_PROPOSAL_SHOW()
+	PlaySound("ReadyCheck", "Master");
 end
