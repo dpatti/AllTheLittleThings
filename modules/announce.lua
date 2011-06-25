@@ -93,8 +93,8 @@ function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcNam
 			act = "missed";
 		end
 		if (act ~= false) then
-			local target = (dstName and " on %s") or "";
-			SendChatMessage(format("%s %s %s%s", srcName, act, spellName, dstName, target), "channel", nil, GetChannelName("ncafail"));
+			local target = (dstName and (" on %s"):format(dstName)) or "";
+			SendChatMessage(format("%s %s %s%s", srcName, act, spellName, target), "channel", nil, GetChannelName("ncafail"));
 		end
 	end
 
