@@ -63,7 +63,7 @@ function mod:OnEnable()
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 end
 
-function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
+function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, _, dstGUID, dstName, dstFlags, _, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
 	-- Interrupt ------------------------------------------------------------------
 	if db.interrupt and GetNumPartyMembers()>0 then
 		if event == "SPELL_INTERRUPT" and srcName == UnitName("player") then
