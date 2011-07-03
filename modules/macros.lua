@@ -168,12 +168,8 @@ end
 
 -- mass buyout
 local bought = {}
-local finished = false
-local last = nil
 function mod:AuctionHouseBuyout()
 	local selected = GetSelectedAuctionItem("list")
-	if last == selected and finished then return end
-	last, finished = selected, false
 	if selected>0 then 
 		local name,_,count,_,_,_,_,_,price = GetAuctionItemInfo("list", selected)
 		for j=50,1,-1 do
@@ -191,13 +187,12 @@ function mod:AuctionHouseBuyout()
 
 		-- no purchase made, buy selected
 		PlaceAuctionBid("list", selected, price)
+		SetSelectedAuctionItem("list", 0);
 		self:Print("All auctions bought.")
-		finished = true
 	end
 end
 
 function mod:QueryAuctionItems()
-	finished = false
 	wipe(bought)
 end
 
