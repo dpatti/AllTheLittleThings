@@ -16,9 +16,11 @@ local potList = {
 	["f"] = 57192, -- Mythical
 }
 local mailQueue = {} -- used in /atlt pots
+local guildColors = {} -- for printing names in color
 
 function mod:OnInitialize()
 	self:RegisterSlashCommand("AddPotions", "pots")
+	self:RegisterSlashCommand("PrintPotions", "pp")
 end
 
 function mod:OnEnable()
@@ -34,6 +36,7 @@ function mod:AddPotions(msg)
 		if rank == "Member" or rank == "Officer" or rank == "Guild Master" then
 			if mailQueue[name] == nil then
 				mailQueue[name] = {}
+				guildColors[name] = RAID_CLASS_COLORS[select(11, GetGuildRosterInfo(i))]
 			end
 		end
 	end
@@ -46,7 +49,7 @@ function mod:AddPotions(msg)
 			for i,_ in pairs(mailQueue) do
 				if i:match("^"..name) then
 					mailQueue[i][typeRef] = ct
-					print(format("Queued %dx |Hitem:%d|h[%s]|h for %s", ct, typeRef, GetItemInfo("item:"..typeRef), i))
+					-- print(format("Queued %dx %s for %s", ct, self:Link(typeRef), i))
 				end
 			end
 		end
@@ -100,7 +103,7 @@ function mod:MailQueueCheck(caller, passData)
 	-- slight pause to allow for items to disappear
 	mailQueueTimer = self:ScheduleTimer(function()
 		do
-			self:Print(caller)
+			-- self:Print(caller)
 			-- return
 		end
 		
@@ -117,7 +120,7 @@ function mod:MailQueueCheck(caller, passData)
 		local pushQueue = {}
 		local checkItemLock = function(_, bagID, slotID)
 			local globalID = bagID*100+slotID
-			self:Print("ITEM_LOCK_CHANGED fired", globalID)
+			-- self:Print("ITEM_LOCK_CHANGED fired", globalID)
 			if pushQueue[globalID] then
 				local _, _, locked = GetContainerItemInfo(bagID, slotID)
 				if not locked then
@@ -128,14 +131,14 @@ function mod:MailQueueCheck(caller, passData)
 					-- if our queue is empty
 					if not next(pushQueue) then
 						self:UnregisterEvent("ITEM_LOCK_CHANGED")
-						self:Print("Unregistering ITEM_LOCK_CHANGED")
+						-- self:Print("Unregistering ITEM_LOCK_CHANGED")
 					end
 				end
 			end
 		end
 		local initializeQueue = function()
 			self:RegisterEvent("ITEM_LOCK_CHANGED", checkItemLock)
-			self:Print("Registering ITEM_LOCK_CHANGED")
+			-- self:Print("Registering ITEM_LOCK_CHANGED")
 		end
 		
 		-- swap tabs if we need to
@@ -149,13 +152,13 @@ function mod:MailQueueCheck(caller, passData)
 		
 		-- fill out shit
 		for item,ct in pairs(data) do
-			print("--------- NEXT ITEM:", item)
+			-- print("--------- NEXT ITEM:", item)
 			if ct > 0 then
 				local inv = GetItemCount(item)
-				print("Checking item count:", inv, ct, inv<ct)
+				-- print("Checking item count:", inv, ct, inv<ct)
 				if inv < ct then
 					-- we don't have enough. abort.
-					self:Print(format("We don't have enough |Hitem:%d|h[%s]|h for %s. Needed %d; have %d.", item, GetItemInfo("item:"..item), name, ct, inv))
+					self:Print(format("We don't have enough %s for %s. Needed %d; have %d.", self:Link(item), name, ct, inv))
 					ClearSendMail()
 					return
 				end
@@ -168,17 +171,17 @@ function mod:MailQueueCheck(caller, passData)
 							-- make sure the item we want is this slot
 							if GetContainerItemID(bag, slot) == item then
 								local _, slotCt, locked = GetContainerItemInfo(bag, slot)
-								print("LOOP", GetItemInfo("item:"..item), slotCt, "/", ct, locked)
+								-- print("LOOP", GetItemInfo("item:"..item), slotCt, "/", ct, locked)
 								if locked then
 									-- the item is locked for whatever reason. abort?
-									self:Message("|Hitem:%d|h[%s]|h in bag %d, slot %d is locked.", item, GetItemInfo("item:"..item), bag, slot)
+									self:Message("%s in bag %d, slot %d is locked.", self:Link(item), bag, slot)
 									return
 								else
 									-- if item too many; find empty spot to dump extras
 									if slotCt > ct then
 										-- check to make sure we can split
 										if #emptySlots == 0 then
-											print("Not enough bag space to split. Aborting.")
+											-- print("Not enough bag space to split. Aborting.")
 											ClearSendMail()
 											mod:CancelAllTimers()
 											return
@@ -187,9 +190,9 @@ function mod:MailQueueCheck(caller, passData)
 										local extraSpace = table.remove(emptySlots)
 										local extraBag, extraSlot = floor(extraSpace/100), extraSpace % 100
 										-- split and place
-										print("splitting", bag, slot, slotCt-ct)
+										-- print("splitting", bag, slot, slotCt-ct)
 										SplitContainerItem(bag, slot, slotCt-ct)
-										print("extras at", extraBag, extraSlot)
+										-- print("extras at", extraBag, extraSlot)
 										PickupContainerItem(extraBag, extraSlot) -- place
 										
 										-- check when lock is clear
@@ -201,11 +204,11 @@ function mod:MailQueueCheck(caller, passData)
 										break
 									else
 										-- item should have enough
-										print("adding to mail", bag, slot, ct, slotCt, ct-slotCt)
+										-- print("adding to mail", bag, slot, ct, slotCt, ct-slotCt)
 										PickupContainerItem(bag, slot)
 										ClickSendMailItemButton()
 										ct = ct - slotCt
-										print("and after", ct)
+										-- print("and after", ct)
 										if ct == 0 then
 											break
 										end
@@ -230,3 +233,18 @@ function mod:MailQueueCheck(caller, passData)
 	end, delay)
 end
 
+function mod:PrintPotions()
+	for name,details in pairs(mailQueue) do
+		print(("|cff%02x%02x%02x%s|r:"):format(guildColors[name].r*255, guildColors[name].g*255, guildColors[name].b*255, name:gsub("^(.)(.*)$", function(f, rest)
+			return string.upper(f) .. rest
+		end)))
+		for pot,n in pairs(details) do
+			print(("   %s: %d"):format(self:Link(pot, true), n))
+		end
+	end
+end
+
+function mod:Link(id, icon)
+	icon = icon and ("|T%s:0|t"):format((select(10, GetItemInfo(id)))) or ""
+	return ("%s|Hitem:%d|h[%s]|h"):format(icon, id, (GetItemInfo(id)))
+end
