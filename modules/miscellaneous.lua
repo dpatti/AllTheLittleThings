@@ -73,6 +73,15 @@ function mod:OnEnable()
 
 	-- louder LFD sound
 	self:RegisterEvent("LFG_PROPOSAL_SHOW");
+
+	-- Fix guild crafters
+	self:RegisterEvent("ADDON_LOADED", function(_, name)
+		if name == "Blizzard_TradeSkillUI" then
+			for i=1, TRADE_SKILL_GUILD_CRAFTERS_DISPLAYED do
+				_G["TradeSkillGuildCrafter"..i.."Text"].SetTextColor = function() end 
+			end
+		end
+	end)
 end
 
 -- Slash Commands --------------------------------------------------------------
