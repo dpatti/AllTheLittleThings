@@ -35,6 +35,11 @@ local options = {
 		desc = "Allows !phone <player>",
 		type = 'toggle',
 	},
+	clickToPaste = {
+		name = "Quick Paste to Officer Chat",
+		desc = "Ctrl+Click on a chat line name to paste to Officer Chat",
+		type = 'toggle',
+	},
 }
 
 function mod:OnInitialize()
@@ -324,3 +329,33 @@ end
 function mod:LFG_PROPOSAL_SHOW()
 	PlaySound("ReadyCheck", "Master");
 end
+
+
+-- Officer Chat Link -----------------------------------------------------------
+local SetItemRefHook = SetItemRef
+function SetItemRef(id, text, button, chatFrame, ...)
+	if IsControlKeyDown() then
+		local name = id:match("player:(.-):")
+		local prefix, message
+		for i=1,select("#", chatFrame:GetRegions()) do
+			local r = select(i, chatFrame:GetRegions())
+			if r:GetObjectType() == "FontString" and r:GetText():find(id) then
+				-- found the line, extract the message
+				prefix, message = r:GetText():match("(.-%S:%s)(.+)")
+
+				-- nasty hack to change player name in during whisper
+				if id:find(":WHISPER:") and prefix:lower():find("%Wto%W") then
+					name = UnitName("player")
+				end
+				break
+			end
+		end
+
+		if name and message then
+			SendChatMessage(("%s: %s"):format(name, message), "officer")
+			return
+		end
+	end
+	SetItemRefHook(id, text, button, chatFrame, ...)
+end
+
