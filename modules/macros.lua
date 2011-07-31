@@ -67,7 +67,8 @@ function mod:ClearMarks()
 	self:ScheduleTimer(function() SetRaidTarget("player", 0) end, 0.5)
 end
 
-local mlOrder = {"Chira", "Brinkley", "Yukiri"}
+-- This used to be an order for shipping items off to DE, but now it is more a "loot all to self" macro
+local mlOrder = {"Chira", UnitName("player")}
 function mod:MasterLoot()
 	for k,v in ipairs(mlOrder) do
 		for i=1, 40 do
@@ -189,6 +190,7 @@ function mod:AuctionHouseBuyout()
 		PlaceAuctionBid("list", selected, price)
 		SetSelectedAuctionItem("list", 0);
 		self:Print("All auctions bought.")
+		wipe(bought)
 	end
 end
 
