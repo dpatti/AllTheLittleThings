@@ -148,6 +148,7 @@ function mod:RosterUpdatePostHook()
 	end
 	if GetTime() - lastCache > 60*5 then
 		self:CacheRaiders()
+		lastCache = GetTime()
 	end
 	
 	-- begin modified blizzard code
@@ -168,19 +169,18 @@ function mod:RosterUpdatePostHook()
 	local maxWeeklyXP, maxTotalXP = GetGuildRosterLargestContribution();
 	local maxAchievementsPoints = GetGuildRosterLargestAchievementPoints();
 	-- numVisible
-	local visibleMembers = 0;
-	for i=1,onlineMembers do
+	local visibleMembers, onlineRaiders = 0, 0
+	local numMembers = GetGuildRosterShowOffline() and totalMembers or onlineMembers
+	for i=1,numMembers do
 		if self:IsRaider(i) then
 			visibleMembers = visibleMembers + 1
+			if select(9, GetGuildRosterInfo(i)) then
+				onlineRaiders = onlineRaiders + 1
+			end
 		end
 	end
 	-- copy visibleMembers to local for referencing
-	rosterRaidersOnline = visibleMembers
-	
-	if ( GetGuildRosterShowOffline() ) then
-		visibleMembers = rosterRaidersCount;
-	end
-	
+	rosterRaidersOnline = onlineRaiders
 	
 	-- self:Print("Start", visibleMembers, rosterRaidersCount)
 	local safety = 1000
@@ -313,6 +313,10 @@ function mod:RosterUpdatePostHook()
 	GuildRosterContainer.update = function() end
 	HybridScrollFrame_Update(scrollFrame, totalHeight, displayedHeight);
 	GuildRosterContainer.update = guildUpdate
+	if rosterRaidersOnline > 0 then
+		-- Shouldn't need to pass a string
+		GuildFrameMembersCount:SetText()
+	end
 end
 
 function mod:GuildRosterButton_OnClick(this, button, ...)
