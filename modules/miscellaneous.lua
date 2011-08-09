@@ -8,6 +8,7 @@ local defaults = {
 	achieveFilter = true,
 	markMsgFilter = true,
 	officerPhone = true,
+	clickToPaste = true,
 }
 local options = {
 	rollTally = {
@@ -50,6 +51,7 @@ function mod:OnInitialize()
 
 	-- allow max camera zoom
 	ConsoleExec("cameradistancemaxfactor 5")
+	CompactRaidFrameContainer.Show = CompactRaidFrameContainer.Hide
 end
 
 
@@ -334,7 +336,7 @@ end
 -- Officer Chat Link -----------------------------------------------------------
 local SetItemRefHook = SetItemRef
 function SetItemRef(id, text, button, chatFrame, ...)
-	if IsControlKeyDown() then
+	if IsControlKeyDown() and db.clickToPaste then
 		local name = id:match("player:(.-):")
 		local prefix, message
 		for i=1,select("#", chatFrame:GetRegions()) do
@@ -352,6 +354,7 @@ function SetItemRef(id, text, button, chatFrame, ...)
 		end
 
 		if name and message then
+			message = message:gsub("|c%x%x%x%x%x%x%x%x(.-)|r", "%1")
 			SendChatMessage(("%s: %s"):format(name, message), "officer")
 			return
 		end

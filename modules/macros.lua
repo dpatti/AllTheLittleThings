@@ -21,6 +21,7 @@ function mod:OnInitialize()
 	self:RegisterSlashCommand("Countdown", "cd", "countdown")
 	self:RegisterSlashCommand("RosterCheck", "rc", "rostercheck")
 	self:RegisterSlashCommand("AuctionHouseBuyout", "ahbo")
+	self:RegisterSlashCommand("EJFix", "ej")
 	self:Hook("QueryAuctionItems", true)
 end
 
@@ -198,3 +199,14 @@ function mod:QueryAuctionItems()
 	wipe(bought)
 end
 
+-- Encounter Journal
+function mod:EJFix()
+	for i=1,100 do
+		local b = _G["EncounterJournalInfoHeader"..i]
+		if b then 
+			b:SetFrameLevel(b:GetParent():GetFrameLevel()+10)
+		else
+			break
+		end
+	end
+end
