@@ -354,7 +354,7 @@ function SetItemRef(id, text, button, chatFrame, ...)
 		end
 
 		if name and message then
-			message = message:gsub("|c%x%x%x%x%x%x%x%x(.-)|r", "%1")
+			message = message:gsub("|c%x%x%x%x%x%x%x%x([^|].-)|r", "%1")
 			SendChatMessage(("%s: %s"):format(name, message), "officer")
 			return
 		end
