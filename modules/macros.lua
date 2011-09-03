@@ -58,7 +58,7 @@ function mod:DemoteAll()
 end
 
 function mod:PrintLoot()
-	self:RaidDump("Send tells for loot:", "raid_warning")
+	SendChatMessage("Send tells for loot:", "raid_warning")
 	for i=1,GetNumLootItems() do 
 		SendChatMessage(GetLootSlotLink(i) .. " (" .. ({"A", "B", "C", "D", "E", "F", "G", "H"})[i] .. ")", "raid_warning")
 	end
