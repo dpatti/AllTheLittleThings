@@ -18,6 +18,9 @@ local rosterRaidersOnly = false
 local rosterRaidersCache = {} -- mains who are raiders
 local rosterRaidersCount = 0
 local rosterRaidersOnline = 0
+local BLACKLIST = {
+  Moulder = true,
+}
 
 function mod:OnInitialize()
 	self:RegisterOptions(options, defaults, function(d) db=d end)
@@ -129,6 +132,11 @@ end
 
 function mod:IsRaider(index)
 	local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(index)
+  -- first checking for blacklisted names
+  if BLACKLIST[name] or BLACKLIST[note] then
+    return false
+  end
+
 	-- if a raider+ rank, or below and linked to a raider
 	-- not name tests for out of bounds check
 	if not name or ((rank <= 1) or (rank == 3) or (rank == 5) or ((rank == 4 or rank == 2) and online and rosterRaidersCache[note])) then
@@ -146,7 +154,7 @@ function mod:RosterUpdatePostHook()
 	if not rosterRaidersOnly then
 		return
 	end
-	if GetTime() - lastCache > 60*5 then
+	if GetTime() - lastCache > 5 then
 		self:CacheRaiders()
 		lastCache = GetTime()
 	end
@@ -199,6 +207,24 @@ function mod:RosterUpdatePostHook()
 		-- self:Print(name, index, rank, note, online, self:IsRaider(index))
 		if ( name and i <= visibleMembers) then
 			if self:IsRaider(index) then
+        -- color if they are on an alt
+        local mainOnAlt = false 
+        if (not online and (rankIndex <= 1 or rankIndex == 3 or rankIndex == 5)) then
+          -- elligible main
+
+
+
+
+
+
+
+
+
+
+
+
+        end
+
 				-- self:Print(offset, name)
 				if offset == 0 then
 					i = i + 1
