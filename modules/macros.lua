@@ -23,6 +23,9 @@ function mod:OnInitialize()
 	self:RegisterSlashCommand("AuctionHouseBuyout", "ahbo")
 	self:RegisterSlashCommand("EJFix", "ej")
 	self:Hook("QueryAuctionItems", true)
+
+    -- Custom slash command for reloading: /rl
+    LibStub("AceConsole-3.0").RegisterChatCommand(self, "rl", function() ReloadUI() end)
 end
 
 function mod:DisbandRaid()
