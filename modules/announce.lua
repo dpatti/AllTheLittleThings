@@ -85,6 +85,10 @@ function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcNam
 
 	-- Spell Watch ----------------------------------------------------------------
 	if (db.spellWatch and (UnitInRaid(srcName) or UnitInParty(srcName)) and (not UnitInBattleground("player")) and not zoneBlacklist[GetRealZoneText()]) then
+		-- Special case for gripping Living Meteors on Ragnaros
+		if (dstName == "Living Meteor") then
+			return
+		end
 		local act = false;
 		if ( (event == "SPELL_AURA_APPLIED" and spellWatch[spellName]) or 
 			 (event == "SPELL_CAST_SUCCESS" and aoeSpellWatch[spellName]) ) then
