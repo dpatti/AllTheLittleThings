@@ -1,8 +1,9 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("PotionMail", "AceEvent-3.0", "AceTimer-3.0")
+local mod = core:NewModule("PotionMail", "AceEvent-3.0", "AceTimer-3.0", "AceHook-3.0")
 local db
 
 local defaults = {
+    mailQueue = {}, -- used to store potion information per character
 }
 local options = {
 }
@@ -15,59 +16,61 @@ local potList = {
 	["e"] = 57194, -- Concentration
 	["f"] = 57192, -- Mythical
 }
-local mailQueue = {} -- used in /atlt pots
 local guildColors = {} -- for printing names in color
+local currentSender -- the current person you are sending to
 
 function mod:OnInitialize()
+	self:RegisterOptions(options, defaults, function(d) db=d end)
 	self:RegisterSlashCommand("AddPotions", "pots")
 	self:RegisterSlashCommand("PrintPotions", "pp")
+	self:RegisterSlashCommand("ClearPotions", "cp")
 end
 
 function mod:OnEnable()
+    -- We use MAIL_SUCCESS instead of MAIL_SEND_SUCCESS because the latter fires on ClearSendMail() which we call
+	self:RegisterEvent("MAIL_SUCCESS", "MailQueueCheck"); 
 	self:RegisterEvent("MAIL_SHOW", "MailQueueCheck");
-	self:RegisterEvent("MAIL_SUCCESS", "MailQueueCheck");
+    self:RegisterEvent("MAIL_CLOSED", function() currentSender = nil end); -- clear the sender
+    self:Hook("SendMail", true)
+
+    self:CacheGuild()
 end
 
-function mod:AddPotions(msg)
+function mod:CacheGuild()
 	-- get all guild members
 	for i=1,GetNumGuildMembers() do
 		local name, rank = GetGuildRosterInfo(i)
 		name = name:lower()
 		if rank == "Member" or rank == "Officer" or rank == "Guild Master" then
-			if mailQueue[name] == nil then
-				mailQueue[name] = {}
-				guildColors[name] = RAID_CLASS_COLORS[select(11, GetGuildRosterInfo(i))]
+			guildColors[name] = RAID_CLASS_COLORS[select(11, GetGuildRosterInfo(i))]
+			if db.mailQueue[name] == nil then
+				db.mailQueue[name] = {}
 			end
 		end
 	end
+end
+
+function mod:AddPotions(msg)
+    -- Call again in case we removed some during potion distribution and added later
+    self:CacheGuild()
+
 	-- parse
 	msg:gsub("([^%d%s]+)(%d+)(%w)", function(name, ct, type)
 		local typeRef = potList[type]
 		name = name:lower()
 		ct = tonumber(ct)
 		if typeRef and ct then
-			for i,_ in pairs(mailQueue) do
+			for i,_ in pairs(db.mailQueue) do
 				if i:match("^"..name) then
-					mailQueue[i][typeRef] = ct
+					db.mailQueue[i][typeRef] = ct
 					-- print(format("Queued %dx %s for %s", ct, self:Link(typeRef), i))
 				end
 			end
 		end
 	end)
-	-- cleanup array
-	for name,data in pairs(mailQueue) do
-		local ct = 0
-		for i,v in pairs(data) do
-			ct = ct + v
-		end
-		if ct == 0 then
-			mailQueue[name] = nil
-		end
-	end
 end
 
 --[[ Things to do here still:
-	- remove debug
 	- consumables.php: group names together in slash args
 	- consumables.php: split slash by pots?
 	- if we don't have mats for this player, move to end of queue
@@ -84,19 +87,42 @@ end
 	- add a command to display how much left of each is needed vs how much you have
 ]]
 local mailQueueTimer
-function mod:MailQueueCheck(caller, passData)
-	local name,data = next(mailQueue)
-	if not data then
-		return -- no need to process queue
-	end
-
-	local delay = 0.5
+function mod:MailQueueCheck(caller)
+    -- First do some preliminary checks
 	if caller == "MAIL_SUCCESS" then
 		-- MAIL_SUCCESS fires on open too, so going to make sure we're looking at a Send Mail screen
 		if MailFrame.selectedTab ~= 2 then
 			return
 		end
+
+        -- if we have a currentSender, remove them from the queue
+        if currentSender then
+            db.mailQueue[currentSender] = nil
+        end
 	end
+
+    -- Get our potion
+	local name,data = next(db.mailQueue)
+	if not data then
+		return -- no need to process queue
+	end
+
+    -- check to make sure there are more than 0 left
+    local done = true
+    for _,n in pairs(data) do
+        if n > 0 then
+            done = false
+            break
+        end
+    end
+    -- if there are none left, delete and re-call
+    if done then
+        db.mailQueue[name] = nil
+        self:MailQueueCheck(caller)
+        return
+    end
+
+	local delay = 0.5
 	if mailQueueTimer then
 		self:CancelTimer(mailQueueTimer, true)
 	end
@@ -174,7 +200,7 @@ function mod:MailQueueCheck(caller, passData)
 								-- print("LOOP", GetItemInfo("item:"..item), slotCt, "/", ct, locked)
 								if locked then
 									-- the item is locked for whatever reason. abort?
-									self:Message("%s in bag %d, slot %d is locked.", self:Link(item), bag, slot)
+									self:Print(format("%s in bag %d, slot %d is locked.", self:Link(item), bag, slot))
 									return
 								else
 									-- if item too many; find empty spot to dump extras
@@ -222,9 +248,9 @@ function mod:MailQueueCheck(caller, passData)
 		end
 
 		-- click send
-		mailQueue[name] = nil
+        currentSender = name
 		-- self:ScheduleTimer(function()
-			-- mailQueue[name] = nil
+			-- db.mailQueue[name] = nil
 			-- ClearSendMail()
 			-- self:MailQueueCheck()
 		-- end, 5)
@@ -234,17 +260,44 @@ function mod:MailQueueCheck(caller, passData)
 end
 
 function mod:PrintPotions()
-	for name,details in pairs(mailQueue) do
+    local totals = {}
+	for name,details in pairs(db.mailQueue) do
 		print(("|cff%02x%02x%02x%s|r:"):format(guildColors[name].r*255, guildColors[name].g*255, guildColors[name].b*255, name:gsub("^(.)(.*)$", function(f, rest)
 			return string.upper(f) .. rest
 		end)))
 		for pot,n in pairs(details) do
 			print(("   %s: %d"):format(self:Link(pot, true), n))
+            totals[pot] = (totals[pot] or 0) + n
 		end
 	end
+
+    if not next(totals) then
+        self:Print("Potion queue is empty")
+        return
+    end
+
+    -- print totals and what we have in bags
+    print("Total:")
+    for pot,n in pairs(totals) do
+        local have = GetItemCount(pot)
+        print(("   %s: |cff%s%d / %d|r"):format(self:Link(pot, true), have >= n and "00ff00" or "ff0000", have, n))
+    end
+end
+
+function mod:ClearPotions()
+    db.mailQueue = {}
 end
 
 function mod:Link(id, icon)
 	icon = icon and ("|T%s:0|t"):format((select(10, GetItemInfo(id)))) or ""
 	return ("%s|Hitem:%d|h[%s]|h"):format(icon, id, (GetItemInfo(id)))
+end
+
+-- Double check when we try to send that we are sending to our auto-person,
+-- otherwise it was not part of this addon and should not be removed from the
+-- queue
+function mod:SendMail(recipient)
+    if currentSender and recipient:lower() ~= currentSender:lower() then
+        currentSender = nil
+    end
 end
