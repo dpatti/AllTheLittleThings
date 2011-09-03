@@ -18,8 +18,9 @@ local rosterRaidersOnly = false
 local rosterRaidersCache = {} -- mains who are raiders
 local rosterRaidersCount = 0
 local rosterRaidersOnline = 0
+local rosterRaidersAlts = {} -- map of mains to whether they have an alt online
 local BLACKLIST = {
-  Moulder = true,
+    Moulder = true,
 }
 
 function mod:OnInitialize()
@@ -28,7 +29,11 @@ end
 
 function mod:OnEnable()
 	self:RegisterEvent("RAID_ROSTER_UPDATE")
-	self:RegisterEvent("ADDON_LOADED")
+    if IsAddOnLoaded("Blizzard_GuildUI") then
+        self:ADDON_LOADED(_, "Blizzard_GuildUI")
+    else
+	    self:RegisterEvent("ADDON_LOADED")
+    end
 end
 
 function mod:ADDON_LOADED(_, name)
@@ -114,28 +119,41 @@ function mod:GuildRoster_Update()
 	end
 end
 
-local lastCache = GetTime()
+local lastCache = 0
 function mod:ModifyRosterPane()
 end
 
 function mod:CacheRaiders()
 	wipe(rosterRaidersCache)
+    wipe(rosterRaidersAlts)
 	rosterRaidersCount = 0
 	
 	for i=1,GetNumGuildMembers() do
 		if self:IsRaider(i) then
-			rosterRaidersCache[GetGuildRosterInfo(i)] = true
+	        local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(i)
+			rosterRaidersCache[name] = true
 			rosterRaidersCount = rosterRaidersCount + 1
+
+            -- set the alt if it is one
+            if (rank == 4 or rank == 2) and online then
+                rosterRaidersAlts[note] = true
+            end
 		end
 	end
 end
 
 function mod:IsRaider(index)
 	local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(index)
-  -- first checking for blacklisted names
-  if BLACKLIST[name] or BLACKLIST[note] then
-    return false
-  end
+
+    -- first check cache
+    if rosterRaidersCache[name] then
+        return true
+    end
+
+    -- next checking for blacklisted names
+    if BLACKLIST[name] or BLACKLIST[note] then
+        return false
+    end
 
 	-- if a raider+ rank, or below and linked to a raider
 	-- not name tests for out of bounds check
@@ -207,24 +225,6 @@ function mod:RosterUpdatePostHook()
 		-- self:Print(name, index, rank, note, online, self:IsRaider(index))
 		if ( name and i <= visibleMembers) then
 			if self:IsRaider(index) then
-        -- color if they are on an alt
-        local mainOnAlt = false 
-        if (not online and (rankIndex <= 1 or rankIndex == 3 or rankIndex == 5)) then
-          -- elligible main
-
-
-
-
-
-
-
-
-
-
-
-
-        end
-
 				-- self:Print(offset, name)
 				if offset == 0 then
 					i = i + 1
@@ -320,6 +320,16 @@ function mod:RosterUpdatePostHook()
 					offset = offset - 1
 					nonMembers = nonMembers + 1
 				end
+
+                -- color differntly if they are on an alt
+                if (not online and rosterRaidersAlts[name]) then
+                    for i=1,4 do
+                        local f = button["string"..i]
+                        if f then
+                            f:SetTextColor(255/255, 218/255, 185/255)
+                        end
+                    end
+                end
 			else
 				nonMembers = nonMembers + 1
 			end			
