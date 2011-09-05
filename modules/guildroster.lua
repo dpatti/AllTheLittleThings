@@ -120,17 +120,13 @@ function mod:GuildRoster_Update()
 end
 
 local lastCache = 0
-function mod:ModifyRosterPane()
-end
-
 function mod:CacheRaiders()
-	wipe(rosterRaidersCache)
     wipe(rosterRaidersAlts)
 	rosterRaidersCount = 0
 	
 	for i=1,GetNumGuildMembers() do
+	    local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(i)
 		if self:IsRaider(i) then
-	        local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(i)
 			rosterRaidersCache[name] = true
 			rosterRaidersCount = rosterRaidersCount + 1
 
@@ -138,6 +134,8 @@ function mod:CacheRaiders()
             if (rank == 4 or rank == 2) and online then
                 rosterRaidersAlts[note] = true
             end
+        else
+			rosterRaidersCache[name] = nil
 		end
 	end
 end
@@ -316,20 +314,21 @@ function mod:RosterUpdatePostHook()
 					else
 						button:UnlockHighlight();
 					end
+
+                    -- color differntly if they are on an alt
+                    if (not online and rosterRaidersAlts[name]) then
+                        for i=1,4 do
+                            local f = button["string"..i]
+                            if f then
+                                f:SetTextColor(255/255, 218/255, 185/255)
+                            end
+                        end
+                    end
 				else
 					offset = offset - 1
 					nonMembers = nonMembers + 1
 				end
 
-                -- color differntly if they are on an alt
-                if (not online and rosterRaidersAlts[name]) then
-                    for i=1,4 do
-                        local f = button["string"..i]
-                        if f then
-                            f:SetTextColor(255/255, 218/255, 185/255)
-                        end
-                    end
-                end
 			else
 				nonMembers = nonMembers + 1
 			end			
