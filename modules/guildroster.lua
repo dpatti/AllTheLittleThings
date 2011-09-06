@@ -126,7 +126,7 @@ function mod:CacheRaiders()
 	
 	for i=1,GetNumGuildMembers() do
 	    local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(i)
-		if self:IsRaider(i) then
+		if self:IsRaider(i, true) then
 			rosterRaidersCache[name] = true
 			rosterRaidersCount = rosterRaidersCount + 1
 
@@ -140,11 +140,11 @@ function mod:CacheRaiders()
 	end
 end
 
-function mod:IsRaider(index)
+function mod:IsRaider(index, noCache)
 	local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(index)
 
     -- first check cache
-    if rosterRaidersCache[name] then
+    if not noCache and rosterRaidersCache[name] then
         return true
     end
 
