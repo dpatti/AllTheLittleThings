@@ -52,6 +52,15 @@ function mod:OnInitialize()
 	-- allow max camera zoom
 	ConsoleExec("cameradistancemaxfactor 5")
 	CompactRaidFrameContainer.Show = CompactRaidFrameContainer.Hide
+
+	-- Fix guild crafters: must be in OnInitialize because ADDON_LOADED is buggy otherwise
+	self:RegisterEvent("ADDON_LOADED", function(_, name)
+		if name == "Blizzard_TradeSkillUI" then
+			for i=1, TRADE_SKILL_GUILD_CRAFTERS_DISPLAYED do
+				_G["TradeSkillGuildCrafter"..i.."Text"].SetTextColor = function() end 
+			end
+		end
+	end)
 end
 
 
@@ -80,15 +89,6 @@ function mod:OnEnable()
 
 	-- louder LFD sound
 	self:RegisterEvent("LFG_PROPOSAL_SHOW");
-
-	-- Fix guild crafters
-	self:RegisterEvent("ADDON_LOADED", function(_, name)
-		if name == "Blizzard_TradeSkillUI" then
-			for i=1, TRADE_SKILL_GUILD_CRAFTERS_DISPLAYED do
-				_G["TradeSkillGuildCrafter"..i.."Text"].SetTextColor = function() end 
-			end
-		end
-	end)
 end
 
 -- Slash Commands --------------------------------------------------------------

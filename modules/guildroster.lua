@@ -25,15 +25,12 @@ local BLACKLIST = {
 
 function mod:OnInitialize()
 	self:RegisterOptions(options, defaults, function(d) db=d end)
+    -- must be in OnInitialize because ADDON_LOADED is buggy otherwise
+    self:RegisterEvent("ADDON_LOADED")
 end
 
 function mod:OnEnable()
 	self:RegisterEvent("RAID_ROSTER_UPDATE")
-    if IsAddOnLoaded("Blizzard_GuildUI") then
-        self:ADDON_LOADED(_, "Blizzard_GuildUI")
-    else
-	    self:RegisterEvent("ADDON_LOADED")
-    end
 end
 
 function mod:ADDON_LOADED(_, name)
