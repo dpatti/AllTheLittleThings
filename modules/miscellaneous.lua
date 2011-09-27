@@ -89,6 +89,9 @@ function mod:OnEnable()
 
 	-- louder LFD sound
 	self:RegisterEvent("LFG_PROPOSAL_SHOW");
+	
+	-- item level
+	self:SecureHook("PaperDollFrame_SetItemLevel")
 end
 
 -- Slash Commands --------------------------------------------------------------
@@ -362,3 +365,33 @@ function SetItemRef(id, text, button, chatFrame, ...)
 	SetItemRefHook(id, text, button, chatFrame, ...)
 end
 
+-- Equipped Item Level in Paper Doll -------------------------------------------
+function mod:PaperDollFrame_SetItemLevel(frame, unit)
+	local itemLevel, currentItemLevel, itemCount = 0, 0, 0
+	local itemLevelText
+	
+	if unit ~= 'player' then
+		return
+	end
+	
+	itemLevel = GetAverageItemLevel()
+
+	for slot = 1, 18 do
+		local item = GetInventoryItemLink("player", slot)
+		
+		if item ~= nil then
+			_, _, quality, iLevel = GetItemInfo(item)
+			
+			if quality > 3 then
+				currentItemLevel = currentItemLevel + iLevel
+			elseif quality > 2 then
+				currentItemLevel = currentItemLevel + iLevel - 13
+			end
+			
+			itemCount = itemCount + 1
+		end
+	end
+	
+	itemLevelText = _G[frame:GetName()..'StatText']
+	itemLevelText:SetText(floor(currentItemLevel / itemCount) .. ' (' .. floor(itemLevel) .. ')')
+end
