@@ -367,31 +367,26 @@ end
 
 -- Equipped Item Level in Paper Doll -------------------------------------------
 function mod:PaperDollFrame_SetItemLevel(frame, unit)
-	local itemLevel, currentItemLevel, itemCount = 0, 0, 0
-	local itemLevelText
+	local currentItemLevel, itemCount = 0, 0
 	
-	if unit ~= 'player' then
+	if unit ~= "player" then
 		return
 	end
 	
-	itemLevel = GetAverageItemLevel()
-
 	for slot = 1, 18 do
 		local item = GetInventoryItemLink("player", slot)
 		
-		if item ~= nil then
-			_, _, quality, iLevel = GetItemInfo(item)
-			
-			if quality > 3 then
-				currentItemLevel = currentItemLevel + iLevel
-			elseif quality > 2 then
-				currentItemLevel = currentItemLevel + iLevel - 13
-			end
-			
+		if item then
+			-- Quality does not matter for average ilevel calculations
+			_, _, _, iLevel = GetItemInfo(item)
+
+			currentItemLevel = currentItemLevel + iLevel
 			itemCount = itemCount + 1
 		end
 	end
 	
-	itemLevelText = _G[frame:GetName()..'StatText']
-	itemLevelText:SetText(floor(currentItemLevel / itemCount) .. ' (' .. floor(itemLevel) .. ')')
+	local itemLevel = GetAverageItemLevel()
+	local equippedItemLevel = currentItemLevel / itemCount
+	_G[frame:GetName()..'StatText']:SetFormattedText("%d (%d)", equippedItemLevel, itemLevel)
+	frame.tooltip2 = ("|cffffffffEquipped Item Level %d|r\n%s"):format(equippedItemLevel, frame.tooltip2)
 end
