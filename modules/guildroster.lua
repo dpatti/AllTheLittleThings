@@ -20,7 +20,6 @@ local rosterRaidersCount = 0
 local rosterRaidersOnline = 0
 local rosterRaidersAlts = {} -- map of mains to whether they have an alt online
 local BLACKLIST = {
-    Moulder = true,
 }
 
 function mod:OnInitialize()
