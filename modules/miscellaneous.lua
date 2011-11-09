@@ -248,32 +248,45 @@ end
 
 -- Officer Phone ---------------------------------------------------------------
 function mod:CHAT_MSG_OFFICER(_, msg)
-	local _,_,numA,numB,numC  = msg:find("!phone %(?(%d+)%)?.(%d+).(%d+)");
-	local _,_,name = msg:find("!phone (%w+)");
+    local _,_,param = msg:find("^!phone (.+)")
+    local name, number
+
+    -- Quit if not a !phone command
+    if not param then return end
+
+    -- Distinguish between name and number
+    if param:find("%d") then
+	    number = param:gsub("%D", "")
+    else
+        _,_,name = param:find("^(%w+)$")
+    end
 	
-	if (not (numA and numB and numC) and not name) then
-		return;
+    -- Quit if neither provided
+	if (not number and not name) then
+		return
 	end
 	
-	local setting = GetGuildRosterShowOffline();
-	SetGuildRosterShowOffline(1);
+    -- For each member
 	for i=1,GetNumGuildMembers() do
+        -- Get phone settings if applicable
 		local p, n = self:CheckPhone(i);
+        -- Do substring match for given name and player name, or ^substring
+        -- match for number to test if we should print
 		if ((name and p and p:lower():find(name:lower())) or 
-			(numA and n and format("%s-%s-%s", numA, numB, numC)==n)) then
+			(number and n and n:gsub("-", ""):find(number))==1) then
 			if (n) then
 				SendChatMessage(format("%s: %s", p, n), "officer");
 			else
-				SendChatMessage(format("No %s for %s.", (numA and "name") or "number", p), "officer");
+				SendChatMessage(format("No %s for %s.", (number and "name") or "number", p), "officer");
 			end
 		end
+
 	end
-	SetGuildRosterShowOffline(setting);
 end
 
 function mod:CheckPhone(index)
 	local name, rank, _, _, _, _, _, onote = GetGuildRosterInfo(index);
-	local a, b, c = onote:match("%(?(%d%d%d)%)?.(%d%d%d).(%d%d%d%d)");
+	local a, b, c = onote:match("%(?(%d%d%d)%)?%D?(%d%d%d)%D?(%d%d%d%d)");
 	if (not rank:find("Alt") and not rank:find("Non")) then
 		if (a) then
 			return name, format("%s-%s-%s", a, b, c);
