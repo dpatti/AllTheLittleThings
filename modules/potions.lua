@@ -41,7 +41,7 @@ function mod:CacheGuild()
 	for i=1,GetNumGuildMembers() do
 		local name, rank = GetGuildRosterInfo(i)
 		name = name:lower()
-		if rank == "Member" or rank == "Officer" or rank == "Guild Master" then
+		if rank == "Applicant" or rank == "Member" or rank == "Officer" or rank == "Guild Master" then
 			guildColors[name] = RAID_CLASS_COLORS[select(11, GetGuildRosterInfo(i))]
 			if db.mailQueue[name] == nil then
 				db.mailQueue[name] = {}

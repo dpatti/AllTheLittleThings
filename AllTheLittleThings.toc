@@ -23,6 +23,7 @@ modules\chatfilter.lua
 modules\guildroster.lua
 modules\macros.lua
 modules\miscellaneous.lua
+modules\notecache.lua
 modules\potions.lua
 modules\prat.lua
 modules\raid.lua
