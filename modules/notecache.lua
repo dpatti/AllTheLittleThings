@@ -27,7 +27,7 @@ end
 
 function mod:Push(tbl, key, value)
     -- skip if value is empty
-    if value == "" then
+    if value == "" or key == nil then
         return
     end
 
