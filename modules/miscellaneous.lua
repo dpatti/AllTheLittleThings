@@ -98,6 +98,11 @@ function mod:OnEnable()
 	
 	-- item level
 	self:SecureHook("PaperDollFrame_SetItemLevel")
+
+    -- I like Rock's /dump better, so use that if it is available
+    if SlashCmdList["PRINT"] then
+        SlashCmdList["DUMP"] = SlashCmdList["PRINT"]
+    end
 end
 
 -- Slash Commands --------------------------------------------------------------
