@@ -22,6 +22,7 @@ function mod:OnInitialize()
 	self:RegisterSlashCommand("RosterCheck", "rc", "rostercheck")
 	self:RegisterSlashCommand("AuctionHouseBuyout", "ahbo")
 	self:RegisterSlashCommand("EJFix", "ej")
+    self:RegisterSlashCommand("RoleCheck", "rolecheck")
 	self:Hook("QueryAuctionItems", true)
 
     -- Custom slash command for reloading: /rl
@@ -212,4 +213,8 @@ function mod:EJFix()
 			break
 		end
 	end
+end
+
+function mod:RoleCheck()
+    InitiateRolePoll()
 end

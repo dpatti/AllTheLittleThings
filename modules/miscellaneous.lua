@@ -43,6 +43,13 @@ local options = {
 	},
 }
 
+-- Trying these out here to see if I can get it done before combat lockdown to
+-- fix a problem where the frames partially show after logging in during combat
+CompactRaidFrameContainer.Show = CompactRaidFrameContainer.Hide
+CompactRaidFrameManager.Show = CompactRaidFrameManager.Hide
+CompactRaidFrameContainer:Hide()
+CompactRaidFrameManager:Hide()
+
 function mod:OnInitialize()
 	self:RegisterOptions(options, defaults, function(d) db=d end)
 	self:RegisterSlashCommand("RollTally", "rt", "rolltally")
@@ -51,7 +58,6 @@ function mod:OnInitialize()
 
 	-- allow max camera zoom
 	ConsoleExec("cameradistancemaxfactor 5")
-	CompactRaidFrameContainer.Show = CompactRaidFrameContainer.Hide
 
 	-- Fix guild crafters: must be in OnInitialize because ADDON_LOADED is buggy otherwise
 	self:RegisterEvent("ADDON_LOADED", function(_, name)
