@@ -260,6 +260,8 @@ function mod:MailQueueCheck(caller)
 end
 
 function mod:PrintPotions()
+    self:CacheGuild()
+
     local totals = {}
 	for name,details in pairs(db.mailQueue) do
 		print(("|cff%02x%02x%02x%s|r:"):format(guildColors[name].r*255, guildColors[name].g*255, guildColors[name].b*255, name:gsub("^(.)(.*)$", function(f, rest)
