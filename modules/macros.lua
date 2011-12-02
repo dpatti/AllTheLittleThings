@@ -177,10 +177,10 @@ local bought = {}
 function mod:AuctionHouseBuyout()
 	local selected = GetSelectedAuctionItem("list")
 	if selected>0 then 
-		local name,_,count,_,_,_,_,_,price = GetAuctionItemInfo("list", selected)
+		local name,_,count,_,_,_,_,_,_,price = GetAuctionItemInfo("list", selected)
 		for j=50,1,-1 do
 			if not bought[j] and selected ~= j then
-				local t_name,_,t_count,_,_,_,_,_,t_price = GetAuctionItemInfo("list", j)
+				local t_name,_,t_count,_,_,_,_,_,_,t_price = GetAuctionItemInfo("list", j)
 				-- must be same item name and equal or less price per unit
 				if (t_name == name) and (t_price>0) and (t_price/t_count <= price/count) then 
 					--self:Print("Buying",j,"at",t_price)
