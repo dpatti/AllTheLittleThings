@@ -95,9 +95,6 @@ function mod:OnEnable()
 
 	-- louder LFD sound
 	self:RegisterEvent("LFG_PROPOSAL_SHOW");
-	
-	-- item level
-	self:SecureHook("PaperDollFrame_SetItemLevel")
 
     -- Tarecgosa staff spam
     ChatFrame_AddMessageEventFilter("CHAT_MSG_EMOTE", function(self, event, msg)
@@ -397,28 +394,3 @@ function SetItemRef(id, text, button, chatFrame, ...)
 	SetItemRefHook(id, text, button, chatFrame, ...)
 end
 
--- Equipped Item Level in Paper Doll -------------------------------------------
-function mod:PaperDollFrame_SetItemLevel(frame, unit)
-	local currentItemLevel, itemCount = 0, 0
-	
-	if unit ~= "player" then
-		return
-	end
-	
-	for slot = 1, 18 do
-		local item = GetInventoryItemLink("player", slot)
-		
-		if item then
-			-- Quality does not matter for average ilevel calculations
-			_, _, _, iLevel = GetItemInfo(item)
-
-			currentItemLevel = currentItemLevel + iLevel
-			itemCount = itemCount + 1
-		end
-	end
-	
-	local itemLevel = GetAverageItemLevel()
-	local equippedItemLevel = currentItemLevel / itemCount
-	_G[frame:GetName()..'StatText']:SetFormattedText("%d (%d)", equippedItemLevel, itemLevel)
-	frame.tooltip2 = ("|cffffffffEquipped Item Level %d|r\n%s"):format(equippedItemLevel, frame.tooltip2)
-end
