@@ -97,11 +97,8 @@ function mod:OnEnable()
 	self:RegisterEvent("LFG_PROPOSAL_SHOW");
 
     -- Tarecgosa staff spam
-    ChatFrame_AddMessageEventFilter("CHAT_MSG_EMOTE", function(self, event, msg)
-        if msg == "The warm embrace of Tarecgosa's presence encircles you." then
-            print("Shitty tarecgosa spam")
-            return true
-        end
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_TEXT_EMOTE", function(self, event, msg)
+        return msg == "The warm embrace of Tarecgosa's presence encircles you."
     end)
 
     -- I like Rock's /dump better, so use that if it is available
