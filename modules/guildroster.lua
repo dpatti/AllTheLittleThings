@@ -122,21 +122,23 @@ function mod:CacheRaiders()
 	
 	for i=1,GetNumGuildMembers() do
 	    local name, _, rank, _, _, _, note, _, online = GetGuildRosterInfo(i)
-        local raider, alt = self:IsRaider(i, true)
-		if name and raider then
-			rosterRaidersCache[name] = true
+        if name then
+            local raider, alt = self:IsRaider(i, true)
+            if name and raider then
+                rosterRaidersCache[name] = true
 
-            if not alt then
-			    rosterRaidersCount = rosterRaidersCount + 1
-            end
+                if not alt then
+                    rosterRaidersCount = rosterRaidersCount + 1
+                end
 
-            -- set the alt if it is one
-            if (rank == 4 or rank == 2) and online then
-                rosterRaidersAlts[note] = true
+                -- set the alt if it is one
+                if (rank == 4 or rank == 2) and online then
+                    rosterRaidersAlts[note] = true
+                end
+            else
+                rosterRaidersCache[name] = nil
             end
-        else
-			rosterRaidersCache[name] = nil
-		end
+        end
 	end
 end
 
