@@ -7,6 +7,7 @@ local defaults = {
 	spellWatch = true,
 	cauterize = "",
 	armorGlyph = true,
+    tbWatch = true,
 }
 local options = {
 	interrupt = {
@@ -68,7 +69,7 @@ function mod:OnEnable()
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 
     -- TB Watch
-    self:ScheduleRepeatingTimer("TolBaradWatch", 60)
+    self:TolBaradWatch()
 end
 
 function mod:COMBAT_LOG_EVENT_UNFILTERED(_, timestamp, event, _, srcGUID, srcName, srcFlags, _, dstGUID, dstName, dstFlags, _, spellid, spellName, spellSchool, extraSpellid, extraSpellName, ...)
@@ -146,13 +147,22 @@ local lastControl = nil         -- Last controlling faction; true = player's fac
 local checkTime = false         -- Flag to check the results of battle via time; reset when battle is about to begin
 function mod:TolBaradWatch()
     if db.tbWatch then
+        -- Instances will bug us, so exit early
+        if IsInInstance() then
+            self:ScheduleTimer("TolBaradWatch", 60)
+            return
+        end
+
+        --print ("TBWATCH GO", lastControl)
         -- Store map and change (708 = TB island)
         local current = GetCurrentMapAreaID()
-        SetMapAreaByID(708)
+        SetMapByID(708)
 
         -- Scan POI (708 = TB island)
         local _, text = GetMapLandmarkInfo(1)
+        if not text then return end
         local control = not not text:find(playerFaction)
+        --print ("control", control)
         -- Check if there was a change
         if control and lastControl == false then
             self:TolBaradControl()
@@ -163,8 +173,10 @@ function mod:TolBaradWatch()
         lastControl = control
 
         -- Check for recent victory (don't check in instance because it bugs?)
-        if not IsInInstance() then
-            local nextBattle = GetOutdoorPVPWaitTime()
+        local nextBattle = GetOutdoorPVPWaitTime() or 0
+        --print("nextBattle", nextBattle)
+        self:ScheduleTimer("TolBaradWatch", max(600, nextBattle - 600))
+        if control then
             -- Check for reset
             if nextBattle < 15*60 then
                 checkTime = true
@@ -178,7 +190,7 @@ function mod:TolBaradWatch()
         end
 
         -- Reset to original
-        SetMapAreaByID(current)
+        SetMapByID(current)
     end
 end
 
@@ -189,13 +201,14 @@ function mod:TolBaradControl()
     local realm = GetRealmName()
     if IsAddOnLoaded("ChoreTracker") and ChoreTrackerDB and ChoreTrackerDB.global and ChoreTrackerDB.global[realm] then
         for char, data in pairs(ChoreTrackerDB.global[realm]) do
-            if data.lockouts and data.lockouts["Baradin Hold"] and data.lockouts["Baradin Hold"].defeatedBosses == 0 then
+            if not data.lockouts or not data.lockouts["Baradin Hold"] or data.lockouts["Baradin Hold"].defeatedBosses == 0 then
                 table.insert(characters, char)
             end
         end
 
         -- Done for the week
         if #characters == 0 then
+            --print("fast end")
             return
         end
     end
@@ -209,5 +222,5 @@ function mod:TolBaradControl()
     end
 
     -- Print
-    core:Print("Tol Barad is in control %s", charList)
+    core:Print(format("Tol Barad is under %s control %s", UnitFactionGroup("player"), charList))
 end
