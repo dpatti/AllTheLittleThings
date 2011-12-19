@@ -144,7 +144,6 @@ end
 
 local _, playerFaction = UnitFactionGroup("player")
 local lastControl = nil         -- Last controlling faction; true = player's faction, false = opposite
-local checkTime = false         -- Flag to check the results of battle via time; reset when battle is about to begin
 function mod:TolBaradWatch()
     if db.tbWatch then
         -- Instances will bug us, so exit early
@@ -163,33 +162,27 @@ function mod:TolBaradWatch()
         if not text then return end
         local control = not not text:find(playerFaction)
         --print ("control", control)
-        -- Check if there was a change
+
+        -- Check if there was a change towards us
         if control and lastControl == false then
             self:TolBaradControl()
-            -- If we're printing above, don't check again
-            checkTime = false
         end
-        -- Set it for next update
-        lastControl = control
 
-        -- Check for recent victory (don't check in instance because it bugs?)
+        -- We'll update again when the next battle is about to take place
+        -- If the battle is in progress, nextBattle will be 0, so let's wait 1 min
         local nextBattle = GetOutdoorPVPWaitTime() or 0
         --print("nextBattle", nextBattle)
-        self:ScheduleTimer("TolBaradWatch", max(600, nextBattle - 600))
-        if control then
-            -- Check for reset
-            if nextBattle < 15*60 then
-                checkTime = true
-            -- Check for control only if our check flag is set and we have control
-            elseif checkTime and nextBattle > 110*60 then
-                checkTime = false
-                if control then
-                    self:TolBaradControl()
-                end
-            end
+        self:ScheduleTimer("TolBaradWatch", max(60, nextBattle))
+
+        -- Check if we just recently defended it
+        -- Note this will not spam because the next run will always be set as above
+        if lastControl and control and nextBattle > 110*60 then
+            self:TolBaradControl()
         end
 
-        -- Reset to original
+        -- Store info for next update
+        lastControl = control
+        -- Reset to original map
         SetMapByID(current)
     end
 end
