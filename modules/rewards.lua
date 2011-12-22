@@ -187,7 +187,7 @@ function mod:GoldValue(i, setFunc)
     local _, info = tooltip:GetItem()
     local _, _, _, _, _, _, _, _, _, _, vendorPrice = GetItemInfo(info)
 
-    return vendorPrice
+    return vendorPrice or 0
 end
 
 function mod:CheckArmor(i, setFunc)
