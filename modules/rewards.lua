@@ -1,5 +1,5 @@
 local core = LibStub("AceAddon-3.0"):GetAddon("AllTheLittleThings")
-local mod = core:NewModule("Quest Rewards", "AceHook-3.0")
+local mod = core:NewModule("Quest Rewards", "AceHook-3.0", "AceTimer-3.0")
 local db
 
 local player = ("%s - %s"):format(UnitName("player"), GetRealmName())
@@ -141,45 +141,50 @@ function mod:ColorizeItems()
     local bestSell, bestSellValue = 0, 0
     for i = 1, numChoices do
         local item = _G["QuestInfoItem"..i]
+        -- Reset saturation
+        SetItemButtonDesaturated(item, false)
 
-        -- Check gold
-        local value = self:GoldValue(i, SetItem)
-        if bestSell == 0 or value > bestSellValue then
-            bestSell, bestSellValue = i, value
-        end
+        -- Do this in a timer so that we don't block
+        self:ScheduleTimer(function()
+            -- Check gold
+            local value = self:GoldValue(i, SetItem)
+            if bestSell == 0 or value > bestSellValue then
+                bestSell, bestSellValue = i, value
+            end
 
-        -- Check usability and filter further
-        local _, _, _, _, isUsable = GetChoiceInfo(i)
-        if isUsable or not isUsable then
-            -- Check armor
-            if UnitLevel("player") > 45 and not self:CheckArmor(i, SetItem) then
-                SetItemButtonTextureVertexColor(item, 0.9, 0, 0)
-				SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0);
-            else
-                -- Still valid, check stats
-                local stat = self:CheckStats(i, SetItem)
-                if stat == -1 then
+            -- Check usability and filter further
+            local _, _, _, _, isUsable = GetChoiceInfo(i)
+            if isUsable or not isUsable then
+                -- Check armor
+                if UnitLevel("player") > 45 and not self:CheckArmor(i, SetItem) then
                     SetItemButtonTextureVertexColor(item, 0.9, 0, 0)
                     SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0);
-                elseif stat == 0 then
-                    SetItemButtonDesaturated(item, true)
                 else
-                    SetItemButtonDesaturated(item, false)
+                    -- Still valid, check stats
+                    local stat = self:CheckStats(i, SetItem)
+                    if stat == -1 then
+                        SetItemButtonTextureVertexColor(item, 0.9, 0, 0)
+                        SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0);
+                    elseif stat == 0 then
+                        SetItemButtonDesaturated(item, true)
+                    end
                 end
             end
-        end
+        end, 0)
     end
 
-    -- Place gold icon on best
-    if bestSell > 0 then
-        local parent = _G["QuestInfoItem" .. bestSell]
-        gold:SetParent(parent)
-        gold:ClearAllPoints()
-        gold:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -2, 4)
-        gold:Show()
-    else
-        gold:Hide()
-    end
+    -- Place gold icon on best (temp broken)
+    self:ScheduleTimer(function()
+        if bestSell > 0 then
+            local parent = _G["QuestInfoItem" .. bestSell]
+            gold:SetParent(parent)
+            gold:ClearAllPoints()
+            gold:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -2, 4)
+            gold:Show()
+        else
+            gold:Hide()
+        end
+    end, (numChoices+1)/10)
 end
 
 function mod:GoldValue(i, setFunc)
