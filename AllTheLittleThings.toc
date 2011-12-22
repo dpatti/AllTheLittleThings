@@ -27,6 +27,7 @@ modules\notecache.lua
 modules\potions.lua
 modules\prat.lua
 modules\raid.lua
+modules\rewards.lua
 modules\rbs.lua
 modules\spellcast.lua
 modules\staging.lua
