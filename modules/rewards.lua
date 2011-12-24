@@ -112,7 +112,7 @@ function mod:CreateTooltip()
     tooltip = CreateFrame("GameTooltip")
     tooltip:SetOwner(UIParent, "ANCHOR_NONE")
     for i = 1, 30 do
-        leftLines[i], rightLines[i] = tooltip:CreateFontString()
+        leftLines[i] = tooltip:CreateFontString()
         leftLines[i]:SetFontObject(GameFontNormal)
 
         rightLines[i] = tooltip:CreateFontString()
