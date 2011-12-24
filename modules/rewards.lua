@@ -128,7 +128,7 @@ function mod:CreateTooltip()
     texture:SetTexture("Interface\\MINIMAP\\TRACKING\\Banker")
 end
 
--- TODO: Check that it is not currency
+-- todo exclude for avd
 function mod:ColorizeItems()
     -- Different functions for quest log rewards and quest giver rewards (hilarious)
     local numChoices, GetChoiceInfo, SetQuestItem
@@ -138,7 +138,11 @@ function mod:ColorizeItems()
         numChoices, SetItem, GetChoiceInfo = GetNumQuestChoices(), "SetQuestItem", function(i) return GetQuestItemInfo("choice", i) end
     end
 
+    -- Hide gold icon
+    gold:Hide()
+
     local bestSell, bestSellValue = 0, 0
+    local finished = 0
     for i = 1, numChoices do
         local item = _G["QuestInfoItem"..i]
         -- Reset saturation
@@ -170,21 +174,20 @@ function mod:ColorizeItems()
                     end
                 end
             end
+
+            -- If we did all items, place gold icon
+            finished = finished + 1
+            if finished == numChoices then
+                if bestSell > 0 then
+                    local parent = _G["QuestInfoItem" .. bestSell]
+                    gold:SetParent(parent)
+                    gold:ClearAllPoints()
+                    gold:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -2, 4)
+                    gold:Show()
+                end
+            end
         end, 0)
     end
-
-    -- Place gold icon on best (temp broken)
-    self:ScheduleTimer(function()
-        if bestSell > 0 then
-            local parent = _G["QuestInfoItem" .. bestSell]
-            gold:SetParent(parent)
-            gold:ClearAllPoints()
-            gold:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -2, 4)
-            gold:Show()
-        else
-            gold:Hide()
-        end
-    end, (numChoices+1)/10)
 end
 
 function mod:GoldValue(i, setFunc)
