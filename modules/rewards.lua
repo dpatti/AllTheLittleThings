@@ -158,7 +158,7 @@ function mod:ColorizeItems()
 
             -- Check usability and filter further
             local _, _, _, _, isUsable = GetChoiceInfo(i)
-            if isUsable or not isUsable then
+            if isUsable then
                 -- Check armor
                 if UnitLevel("player") > 45 and not self:CheckArmor(i, SetItem) then
                     SetItemButtonTextureVertexColor(item, 0.9, 0, 0)
