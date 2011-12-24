@@ -129,7 +129,6 @@ function mod:CreateTooltip()
     texture:SetTexture("Interface\\MINIMAP\\TRACKING\\Banker")
 end
 
--- TODO case insensitive matching
 function mod:ColorizeItems()
     -- Different functions for quest log rewards and quest giver rewards (hilarious)
     local numChoices, GetChoiceInfo, SetQuestItem
@@ -257,9 +256,12 @@ function mod:CheckStats(i, setFunc)
     return requirement and 1 or 0
 end
 
+-- Case insensitive tooltip scanning
+-- Searches the lines in col (table of strings) for str starting at index `start`
 function mod:ScanTip(col, str, start)
+    str = str:lower()
     for i = start or 1, tooltip:NumLines() do
-        local text = col[i]:GetText()
+        local text = col[i]:GetText():lower()
         if text:find(str) then
             return true
         end
