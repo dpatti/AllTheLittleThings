@@ -9,7 +9,8 @@ local CHOICE = {
     [OPT]  = "|cffffff00Optional|r",
     [EXCL] = "|cffff0000Exclude|r",
 }
-local AVOIDANCE = { STAT_MASTERY, STAT_DODGE, STAT_PARRY }
+local AVOIDANCE = { STAT_MASTERY, STAT_DODGE, STAT_PARRY } -- stats to check for
+local AVD_MIX   = {         true,      false,      false } -- whether the stat is not exclusive to avd
 local defaults = {
     filter = {},
 }
@@ -128,7 +129,7 @@ function mod:CreateTooltip()
     texture:SetTexture("Interface\\MINIMAP\\TRACKING\\Banker")
 end
 
--- todo exclude for avd
+-- TODO case insensitive matching
 function mod:ColorizeItems()
     -- Different functions for quest log rewards and quest giver rewards (hilarious)
     local numChoices, GetChoiceInfo, SetQuestItem
@@ -229,8 +230,12 @@ function mod:CheckStats(i, setFunc)
 
     -- Check stats in AVOIDANCE
     if db.filter[player].avd ~= OPT then
-        for _, str in ipairs(AVOIDANCE) do
-            statMap['avd'] = statMap['avd'] or self:ScanTip(leftLines, str, 3)
+        for i, str in ipairs(AVOIDANCE) do
+            -- Here's the catch: if it's a mix stat (e.g., mastery), we need to
+            -- not consider it if the mode is in exclude
+            if not AVD_MIX[i] or db.filter[player]['avd'] ~= EXCL then
+                statMap['avd'] = statMap['avd'] or self:ScanTip(leftLines, str, 3)
+            end
         end
     end
 
