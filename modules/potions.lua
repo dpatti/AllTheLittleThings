@@ -15,9 +15,11 @@ local potList = {
 	["d"] = 58091, -- Volcanic
 	["e"] = 57194, -- Concentration
 	["f"] = 57192, -- Mythical
+	["g"] = 57192, -- Mysterious
 }
 local guildColors = {} -- for printing names in color
 local currentSender -- the current person you are sending to
+local matWarning = false -- flag so that we don't get print warning twice in a row
 
 function mod:OnInitialize()
 	self:RegisterOptions(options, defaults, function(d) db=d end)
@@ -71,22 +73,19 @@ function mod:AddPotions(msg)
 end
 
 --[[ Things to do here still:
-	- consumables.php: group names together in slash args
-	- consumables.php: split slash by pots?
-	- if we don't have mats for this player, move to end of queue
-	- use a flag of sorts to keep track of who was moved and who was not; reset flags on... mailbox close? this way we don't keep going through the queue over and over at the end
-	- change data structure to numerical array (so we can move to the end)
+	- consumables.php: group names together in slash args (why?)
+	- consumables.php: split slash by pots? (what?)
 	- change subject line to include amount
-	- the lowercase first letter bugs me
 	- do check when parsing slash command to make sure there are no ambiguous targets (Eternal/Eternity)
 	- compress slash command more: 
 		limit to first 4 letters (chir40d, chir->chira)? 3 may be possible but has higher collisions
 		allow for chaining (chira40d2e6f - 40d, 2e, 6f)?
 		include length of name after characters *in hex* (chi540d - "chira" has length of 5)
 	- re-consolidate stacks at the end of the queue
-	- add a command to display how much left of each is needed vs how much you have
+    - handle situations where more than 12 slots are needed
 ]]
 local mailQueueTimer
+local delay = 0.5
 function mod:MailQueueCheck(caller)
     -- First do some preliminary checks
 	if caller == "MAIL_SUCCESS" then
@@ -100,39 +99,66 @@ function mod:MailQueueCheck(caller)
             db.mailQueue[currentSender] = nil
         end
 	end
-
-    -- Get our potion
-	local name,data = next(db.mailQueue)
-	if not data then
-		return -- no need to process queue
-	end
-
-    -- check to make sure there are more than 0 left
-    local done = true
-    for _,n in pairs(data) do
-        if n > 0 then
-            done = false
-            break
-        end
-    end
-    -- if there are none left, delete and re-call
-    if done then
-        db.mailQueue[name] = nil
-        self:MailQueueCheck(caller)
-        return
-    end
-
-	local delay = 0.5
+    -- Check that there is no mailQueueTimer
 	if mailQueueTimer then
 		self:CancelTimer(mailQueueTimer, true)
 	end
+
+    mailQueueTimer = self:ScheduleTimer("MailStockCheck", delay)
+end
+
+function mod:MailStockCheck()
+    -- Find a player that we can mail to
+    local name, empty = nil, true
+    for player, data in pairs(db.mailQueue) do
+        -- Check that we have enough mats for this character
+        local have = true
+        for item, ct in pairs(data) do
+            if ct > 0 then
+                empty = false
+                -- Checking our inventory
+                local inv = GetItemCount(item)
+                if inv < ct then
+                    have = false
+                    break
+                end
+            end
+        end
+        -- Breaking out of outer loop, but make sure we had something
+        if have and next(data) then 
+            name = player
+            break 
+        end
+    end
+    -- Check if the search was successful
+    if not name and not empty then
+        if not matWarning then
+            matWarning = true
+            self:Print("We don't have enough mats for anyone else. The following is needed:")
+            self:PrintPotions(true)
+        end
+        return
+    end
+    -- If we got this far, reset flag to print next time
+    matWarning = false
+
+    -- Check that there is no mailQueueTimer
+	if mailQueueTimer then
+		self:CancelTimer(mailQueueTimer, true)
+	end
+
+    -- Call with this guy
+    self:MailProcess(name)
+end
+
+function mod:MailProcess(name)
+    -- Get our potion
+	local data = db.mailQueue[name]
+    -- Sanity check
+	if not data then return end
+
 	-- slight pause to allow for items to disappear
 	mailQueueTimer = self:ScheduleTimer(function()
-		do
-			-- self:Print(caller)
-			-- return
-		end
-		
 		-- find all slots for splitting onto
 		local emptySlots = {}
 		for bag=0,NUM_BAG_SLOTS do
@@ -259,18 +285,29 @@ function mod:MailQueueCheck(caller)
 	end, delay)
 end
 
-function mod:PrintPotions()
+-- Optional flag to specify that you only want the potion summary printed
+function mod:PrintPotions(onlySummary)
     self:CacheGuild()
+
+    -- Remove printing if we want summary only
+    local print = print
+    -- Test against true because we get other slash command stuff
+    if onlySummary == true then
+        print = function() end
+    end
 
     local totals = {}
 	for name,details in pairs(db.mailQueue) do
-		print(("|cff%02x%02x%02x%s|r:"):format(guildColors[name].r*255, guildColors[name].g*255, guildColors[name].b*255, name:gsub("^(.)(.*)$", function(f, rest)
-			return string.upper(f) .. rest
-		end)))
-		for pot,n in pairs(details) do
-			print(("   %s: %d"):format(self:Link(pot, true), n))
-            totals[pot] = (totals[pot] or 0) + n
-		end
+        -- Check to make sure it is not an empty print
+        if next(details) then
+            print(("|cff%02x%02x%02x%s|r:"):format(guildColors[name].r*255, guildColors[name].g*255, guildColors[name].b*255, name:gsub("^(.)(.*)$", function(f, rest)
+                return string.upper(f) .. rest
+            end)))
+            for pot,n in pairs(details) do
+                print(("   %s: %d"):format(self:Link(pot, true), n))
+                totals[pot] = (totals[pot] or 0) + n
+            end
+        end
 	end
 
     if not next(totals) then
@@ -282,7 +319,8 @@ function mod:PrintPotions()
     print("Total:")
     for pot,n in pairs(totals) do
         local have = GetItemCount(pot)
-        print(("   %s: |cff%s%d / %d|r"):format(self:Link(pot, true), have >= n and "00ff00" or "ff0000", have, n))
+        -- Explicitly call global print
+        _G.print(("   %s: |cff%s%d / %d|r"):format(self:Link(pot, true), have >= n and "00ff00" or "ff0000", have, n))
     end
 end
 
