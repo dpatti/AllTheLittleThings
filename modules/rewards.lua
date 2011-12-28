@@ -131,7 +131,7 @@ end
 
 function mod:ColorizeItems()
     -- Different functions for quest log rewards and quest giver rewards (hilarious)
-    local numChoices, GetChoiceInfo, SetQuestItem
+    local numChoices, SetItem, GetChoiceInfo
     if QuestInfoFrame.questLog then
         numChoices, SetItem, GetChoiceInfo = GetNumQuestLogChoices(), "SetQuestLogItem", GetQuestLogChoiceInfo
     else
