@@ -162,13 +162,13 @@ function mod:ColorizeItems()
                 -- Check armor
                 if UnitLevel("player") > 45 and not self:CheckArmor(i, SetItem) then
                     SetItemButtonTextureVertexColor(item, 0.9, 0, 0)
-                    SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0);
+                    SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0)
                 else
                     -- Still valid, check stats
                     local stat = self:CheckStats(i, SetItem)
                     if stat == -1 then
                         SetItemButtonTextureVertexColor(item, 0.9, 0, 0)
-                        SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0);
+                        SetItemButtonNameFrameVertexColor(item, 0.9, 0, 0)
                     elseif stat == 0 then
                         SetItemButtonDesaturated(item, true)
                     end
