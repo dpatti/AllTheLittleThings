@@ -4,9 +4,7 @@ local db
 
 local defaults = {
 	rollTally = true,
-	nixAFK = true,
 	achieveFilter = true,
-	markMsgFilter = true,
 	officerPhone = true,
 	clickToPaste = true,
 }
@@ -16,20 +14,10 @@ local options = {
 		desc = "Tallies rolls for 8s after a raid warning with 'roll' in the message. Can also activate with /atlt rt.",
 		type = "toggle",
 	},
-	nixAFK = {
-		name = "Remove AFK Responses",
-		desc = "Removes AFK responses when whispering AFK players.",
-		type = "toggle",
-	},
 	achieveFilter = {
 		name = "Achievement Filter",
 		desc = "Sets achievement filter to Incomplete automatically.",
 		type = "toggle",
-	},
-	markMsgFilter = {
-		name = "Mark Message Filter",
-		desc = "Filters mark messages caused by the player.",
-		type = 'toggle',
 	},
 	officerPhone = {
 		name = "Officer Phone Records",
@@ -78,17 +66,11 @@ function mod:OnEnable()
 	self:RegisterEvent("CHAT_MSG_RAID_WARNING")
 	self:RegisterEvent("CHAT_MSG_SYSTEM")
 
-	-- nix afk
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_AFK", function(...) return self:NixAFK(...) end)
-
 	-- achieve filter
 	self:RawHook("AchievementFrame_LoadUI", true)
 
 	-- target icons
 	self:SecureHook("TargetUnit")
-
-	-- filter self targets
-	ChatFrame_AddMessageEventFilter("CHAT_MSG_TARGETICONS", function(_,_,msg) if (msg:find("%["..UnitName("player").."%]")) then return true end end)
 
 	-- officer phone
 	self:RegisterEvent("CHAT_MSG_OFFICER");
@@ -96,18 +78,13 @@ function mod:OnEnable()
 	-- louder LFD sound
 	self:RegisterEvent("LFG_PROPOSAL_SHOW");
 
-    -- Tarecgosa staff spam
-    ChatFrame_AddMessageEventFilter("CHAT_MSG_TEXT_EMOTE", function(self, event, msg)
-        return msg == "The warm embrace of Tarecgosa's presence encircles you."
-    end)
-
     -- I like Rock's /dump better, so use that if it is available
     if SlashCmdList["PRINT"] then
         SlashCmdList["DUMP"] = SlashCmdList["PRINT"]
     end
 end
 
--- Slash Commands --------------------------------------------------------------
+-- Slash Commands ---------------------------------------------------------- {{{
 function mod:RollTally()
 	self:CHAT_MSG_RAID_WARNING(nil, "roll")
 end
@@ -187,8 +164,9 @@ function mod:ActiveTally(mode)
 		mains[max] = nil
 	end
 end
+-- }}}
 
--- Roll Tally ------------------------------------------------------------------
+-- Roll Tally -------------------------------------------------------------- {{{
 local rollTally = {}
 local rollTimer = false
 
@@ -252,14 +230,9 @@ function mod:RollFinish()
 	end
 	rollTimer = false
 end
+-- }}}
 
-
-function mod:NixAFK(_, _, ...)
-	return (not not db.nixAFK), ...
-end
-
-
--- Officer Phone ---------------------------------------------------------------
+-- Officer Phone ----------------------------------------------------------- {{{
 function mod:CHAT_MSG_OFFICER(_, msg)
     local _,_,param = msg:find("^!phone (.+)")
     local name, number
@@ -308,8 +281,9 @@ function mod:CheckPhone(index)
 	end
 	return nil, nil;
 end
+-- }}}
 
--- Mark Star on Target ---------------------------------------------------------
+-- Mark Star on Target ----------------------------------------------------- {{{
 function mod:TargetUnit(name)
 	if name and GetNumPartyMembers() == 0 and GetNumRaidMembers() == 0 then
 		self:RegisterEvent("UNIT_TARGET", function(_, unit)
@@ -322,17 +296,18 @@ function mod:TargetUnit(name)
 		end)
 	end
 end
+-- }}}
 
--- Achieve Load ----------------------------------------------------------------
+-- Achieve Load ------------------------------------------------------------ {{{
 function mod:AchievementFrame_LoadUI(...)
 	local args = {self.hooks["AchievementFrame_LoadUI"](...)}
 	AchievementFrame_SetFilter(3)
 	self:Unhook("AchievementFrame_LoadUI")
 	return unpack(args);
 end
+-- }}}
 
-
--- Fix to typing /w chi<cr> with auto complete ---------------------------------
+-- Fix to typing /w chi<cr> with auto complete ----------------------------- {{{
 -- change our OnEscapePressed to Reset
 function ChatEdit_OnEscapePressed(editBox)
 	ChatEdit_ResetChatTypeToSticky(editBox);
@@ -354,15 +329,15 @@ for i=1,NUM_CHAT_WINDOWS do
 		end)
 	end
 end
+-- }}}
 
-
--- LFD Louder Noise ------------------------------------------------------------
+-- LFD Louder Noise -------------------------------------------------------- {{{
 function mod:LFG_PROPOSAL_SHOW()
 	PlaySound("ReadyCheck", "Master");
 end
+-- }}}
 
-
--- Officer Chat Link -----------------------------------------------------------
+-- Officer Chat Link ------------------------------------------------------- {{{
 local SetItemRefHook = SetItemRef
 function SetItemRef(id, text, button, chatFrame, ...)
 	if IsControlKeyDown() and db.clickToPaste then
@@ -390,4 +365,5 @@ function SetItemRef(id, text, button, chatFrame, ...)
 	end
 	SetItemRefHook(id, text, button, chatFrame, ...)
 end
+-- }}}
 

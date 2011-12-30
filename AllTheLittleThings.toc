@@ -19,7 +19,7 @@ AllTheLittleThings.lua
 
 modules\announce.lua
 modules\battlegrounds.lua
-modules\chatfilter.lua
+modules\chat.lua
 modules\guildroster.lua
 modules\macros.lua
 modules\miscellaneous.lua
