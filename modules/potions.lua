@@ -299,7 +299,7 @@ function mod:PrintPotions(onlySummary)
     local totals = {}
 	for name,details in pairs(db.mailQueue) do
         -- Check to make sure it is not an empty print
-        if next(details) then
+        if next(details) and guildColors[name] then
             print(("|cff%02x%02x%02x%s|r:"):format(guildColors[name].r*255, guildColors[name].g*255, guildColors[name].b*255, name:gsub("^(.)(.*)$", function(f, rest)
                 return string.upper(f) .. rest
             end)))
