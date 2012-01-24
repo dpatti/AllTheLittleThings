@@ -131,12 +131,13 @@ end
 
 function mod:ColorizeItems()
     -- Different functions for quest log rewards and quest giver rewards (hilarious)
-    local numChoices, SetItem, GetChoiceInfo
+    local numChoices, GetNumChoices, SetItem, GetChoiceInfo
     if QuestInfoFrame.questLog then
-        numChoices, SetItem, GetChoiceInfo = GetNumQuestLogChoices(), "SetQuestLogItem", GetQuestLogChoiceInfo
+        GetNumChoices, SetItem, GetChoiceInfo = GetNumQuestLogChoices, "SetQuestLogItem", GetQuestLogChoiceInfo
     else
-        numChoices, SetItem, GetChoiceInfo = GetNumQuestChoices(), "SetQuestItem", function(i) return GetQuestItemInfo("choice", i) end
+        GetNumChoices, SetItem, GetChoiceInfo = GetNumQuestChoices, "SetQuestItem", function(i) return GetQuestItemInfo("choice", i) end
     end
+    numChoices = GetNumChoices()
 
     -- Hide gold icon
     gold:Hide()
@@ -150,6 +151,9 @@ function mod:ColorizeItems()
 
         -- Do this in a timer so that we don't block
         self:ScheduleTimer(function()
+            -- Return if the quest was abandoned to prevent lua error
+            if numChoices ~= GetNumChoices() then return end
+
             -- Check gold
             local value = self:GoldValue(i, SetItem)
             if bestSell == 0 or value > bestSellValue then
