@@ -213,9 +213,7 @@ function mod:RollFinish()
 			table.insert(ties, i)
 		end
 	end
-	if not winner then
-		self:Print("No rolls detected.")
-	else
+	if winner then
 		if next(ties) then
 			local roll = rollTally[winner]
 			for i,v in ipairs(ties) do
